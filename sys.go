@@ -22,6 +22,7 @@ var MODDEBUG = "DEBUG"
 var sysTB = "sysinfo"
 var fileTB = "files"
 
+// sysInfo 对接GB28181协议,系统运行信息
 type sysInfo struct {
 	// Region 当前域
 	Region string `json:"region" bson:"region"  yaml:"region" mapstructure:"region"`
@@ -31,7 +32,7 @@ type sysInfo struct {
 	UNUM int `json:"unum" bson:"unum" yaml:"unum" mapstructure:"unum"`
 	// DID 设备id固定头部
 	DID string `json:"did" bson:"did" yaml:"did" mapstructure:"did"`
-	// DNUM 当前设备数
+	// DNUM 当前设备数
 	DNUM int `json:"dnum" bson:"dnum" yaml:"dnum" mapstructure:"dnum"`
 	// LID 当前服务id
 	LID         string `json:"lid" bson:"lid" yaml:"lid" mapstructure:"lid"`
@@ -77,7 +78,7 @@ func loadSYSInfo() {
 	_sysinfo = sysInfo{}
 	if err := dbClient.Get(sysTB, M{}, &_sysinfo); err != nil {
 		if err == mongo.ErrNoDocuments {
-			//  初始不存在
+			// 初始不存在
 			_sysinfo = defaultInfo()
 			if err = dbClient.Insert(sysTB, _sysinfo); err != nil {
 				logrus.Fatalf("1 init sysinfo err:%v", err)

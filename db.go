@@ -27,23 +27,28 @@ var (
 	database string
 )
 
-// DBConfig config
+// DBConfig 数据库(mongo)
 type DBConfig struct {
-	Addr   string `json:"addr" yaml:"addr" mapstructure:"addr"`
+	// Addr mongo数据库地址(IP:Port)
+	Addr string `json:"addr" yaml:"addr" mapstructure:"addr"`
+	// DBName 数据库
 	DBName string `json:"db" yaml:"db" mapstructure:"db"`
-	Retry  *bool  `json:"retry" yaml:"retry"`
+	// Retry 对于写操作，若出现错误时是否重试, 备注:mongo-driver/mongo/options支持的
+	Retry *bool `json:"retry" yaml:"retry"`
 }
 
 // DBClient DBClient
 type DBClient interface {
 	SetDB(string) DBClient
-	Insert(string, interface{}) error
+	// Insert 插入一条记录
+	Insert(tb string, obj interface{}) error
 	Update(string, interface{}, interface{}) error
 	UpdateMany(string, interface{}, interface{}) (int64, int64, error)
 	UpdateResult(string, interface{}, interface{}) (int64, int64, error)
 	Upsert(string, interface{}, interface{}) (bool, error)
-	Get(string, interface{}, interface{}) error
-	Count(string, interface{}) (int64, error)
+	// Get 查询一条记录
+	Get(tb string, query interface{}, obj interface{}) error
+	Count(tb string, query interface{}) (int64, error)
 	Find(string, interface{}, int64, int64, string, bool, interface{}) (int64, error)
 	Del(string, interface{}) error
 	DelMany(string, interface{}) (int64, int64, error)
@@ -52,7 +57,7 @@ type DBClient interface {
 var (
 	// ErrObjNotArray ErrObjNotArray
 	ErrObjNotArray = fmt.Errorf("对象不是数组")
-	// ErrRecordNouFound ErrRecordNouFound
+	// ErrRecordNouFound 记录查询不存在
 	ErrRecordNouFound = mongo.ErrNoDocuments
 )
 
