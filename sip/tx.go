@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// activeTX 内存激活/活跃合同映射表 key=key value=Transaction 其中的key其实就是callid
 var activeTX *transacionts
 
 type transacionts struct {
@@ -16,6 +17,7 @@ type transacionts struct {
 	rwm *sync.RWMutex
 }
 
+// newTX key其实就是callid
 func (txs *transacionts) newTX(key string, conn Connection) *Transaction {
 	tx := NewTransaction(key, conn)
 	txs.rwm.Lock()
@@ -40,27 +42,38 @@ func (txs *transacionts) rmTX(tx *Transaction) {
 	txs.rwm.Unlock()
 }
 
-// Transaction Transaction
+/*
+******************************************************/
+
+// Transaction 交易/合约
 type Transaction struct {
-	conn   Connection
-	key    string
-	resp   chan *Response
+	// conn 连接实例对象
+	conn Connection
+	// key 其实就是callid
+	key string
+	// resp 收到消息队列
+	resp chan *Response
+	// active 连接激活队列, 触发激活的动作有以下几种,假如在20s内没有触发,则关闭conn连接对象
+	//
+	// 1: 接收到对方的回复消息到队列
+	// 2: 从队列读取了对方的回复消息
 	active chan int
 }
 
-// NewTransaction NewTransaction
+// NewTransaction 新建合约
 func NewTransaction(key string, conn Connection) *Transaction {
 	logrus.Traceln("new tx", key, time.Now().Format("2006-01-02 15:04:05"))
-	tx := &Transaction{conn: conn, key: key, resp: make(chan *Response, 10), active: make(chan int, 1)}
+	tx := &Transaction{conn: conn, key: key, resp: make(chan *Response, 10), active: make(chan int, 1)} // active队列会在watch立刻触发,所以长度1个够用
 	go tx.watch()
 	return tx
 }
 
-// Key Key
+// Key 查询
 func (tx *Transaction) Key() string {
 	return tx.key
 }
 
+// watch 监听心跳
 func (tx *Transaction) watch() {
 	for {
 		select {
@@ -74,7 +87,15 @@ func (tx *Transaction) watch() {
 	}
 }
 
-// GetResponse GetResponse
+// Close Close
+func (tx *Transaction) Close() {
+	logrus.Traceln("closed tx", tx.key, time.Now().Format("2006-01-02 15:04:05"))
+	activeTX.rmTX(tx)
+	close(tx.resp)
+	close(tx.active)
+}
+
+// GetResponse 读取了对方的回复消息,从队列中读取,触发一次激活
 func (tx *Transaction) GetResponse() *Response {
 	for {
 		res := <-tx.resp
@@ -91,15 +112,7 @@ func (tx *Transaction) GetResponse() *Response {
 	}
 }
 
-// Close Close
-func (tx *Transaction) Close() {
-	logrus.Traceln("closed tx", tx.key, time.Now().Format("2006-01-02 15:04:05"))
-	activeTX.rmTX(tx)
-	close(tx.resp)
-	close(tx.active)
-}
-
-// Response Response
+// Response 接收对方的回复消息,写入到队列等待读取,触发一次激活
 func (tx *Transaction) receiveResponse(msg *Response) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -111,20 +124,24 @@ func (tx *Transaction) receiveResponse(msg *Response) {
 	tx.active <- 1
 }
 
-// Respond Respond
+// Respond 回复消息 将res消息发送出去 -> res.dest, callid就是tx.key
 func (tx *Transaction) Respond(res *Response) error {
 	logrus.Traceln("send response,to:", res.dest.String(), "txkey:", tx.key, "message: \n", res.String())
 	_, err := tx.conn.WriteTo([]byte(res.String()), res.dest)
 	return err
 }
 
-// Request Request
+// Request 请求消息 将req消息发送出去 -> req.dest, callid就是tx.key
 func (tx *Transaction) Request(req *Request) error {
 	logrus.Traceln("send request,to:", req.dest.String(), "txkey:", tx.key, "message: \n", req.String())
 	_, err := tx.conn.WriteTo([]byte(req.String()), req.dest)
 	return err
 }
 
+/*
+******************************************************/
+
+// getTXKey 获取合同tx的key,也就是callid
 func getTXKey(msg Message) (key string) {
 	callid, ok := msg.CallID()
 	if ok {

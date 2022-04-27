@@ -42,8 +42,10 @@ type DBClient interface {
 	SetDB(string) DBClient
 	// Insert 插入一条记录
 	Insert(tb string, obj interface{}) error
-	Update(string, interface{}, interface{}) error
-	UpdateMany(string, interface{}, interface{}) (int64, int64, error)
+	// Update 更新一条记录
+	Update(tb string, query, update interface{}) error
+	// Update 批量更新记录
+	UpdateMany(tb string, query, update interface{}) (int64, int64, error)
 	UpdateResult(string, interface{}, interface{}) (int64, int64, error)
 	Upsert(string, interface{}, interface{}) (bool, error)
 	// Get 查询一条记录

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	// sip服务用户信息 也就是当前自己的服务用户信息(即:gosip服务), 比如:自己的SIP编号(LID),SIP域(Region),地址(IP:Port)
+	// _serverDevices 本sip服务用户信息(当前自己,即:gosip服务) 包含如:自己的SIP编号(LID),SIP域(Region),地址(IP:Port)
 	_serverDevices NVRDevices
 	srv            *sip.Server
 )

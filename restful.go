@@ -315,11 +315,10 @@ func apiFileList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 }
 
-// key:ssrc  value=channel
-// 记录流录制
+// _apiRecordList 记录流录制 key:ssrc  value=channel
 var _apiRecordList apiRecordList
 
-// RecordFiles RecordFiles
+// RecordFiles files:录制文件表结构
 type RecordFiles struct {
 	Start  int64  `json:"start" bson:"start"`
 	End    int64  `json:"end" bson:"end"`

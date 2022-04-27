@@ -14,10 +14,10 @@ var (
 	bufferSize uint16 = 65535 - 20 - 8 // IPv4 max size - IPv4 Header size - UDP Header size
 )
 
-// RequestHandler RequestHandler
+// RequestHandler 请求处理程序/请求处理句柄
 type RequestHandler func(req *Request, tx *Transaction)
 
-// Server Server
+// Server SIP服务
 type Server struct {
 	udpaddr net.Addr
 	conn    Connection
@@ -31,7 +31,7 @@ type Server struct {
 	host net.IP
 }
 
-// NewServer NewServer
+// NewServer 新建SIP服务
 func NewServer() *Server {
 	activeTX = &transacionts{txs: map[string]*Transaction{}, rwm: &sync.RWMutex{}}
 	srv := &Server{hmu: &sync.RWMutex{},

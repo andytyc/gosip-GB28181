@@ -71,9 +71,12 @@ func getSSRC(t int) string {
 	}
 }
 
-// 定时检查未关闭的流
+// 定时检查未关闭的流/定时关闭推送流
+//
 // 检查规则：
+//
 // 1. 数据库查询当前status=0在推流状态的所有流信息
+//
 // 2. 比对当前_playList中存在的流，如果不在_playlist或者ssrc与deviceid不匹配则关闭
 func checkStream() {
 	logrus.Debugln("checkStreamWithCron")
