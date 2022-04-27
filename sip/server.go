@@ -22,12 +22,16 @@ type Server struct {
 	udpaddr net.Addr
 	conn    Connection
 
+	// txs 此服务已激活合同映射表
 	txs *transacionts
 
+	// hmu 用于requestHandlers句柄映射表, 路由方法:处理句柄
 	hmu             *sync.RWMutex
 	requestHandlers map[RequestMethod]RequestHandler
 
+	// port 服务端口
 	port *Port
+	// host 自身机器网络IP
 	host net.IP
 }
 
@@ -43,9 +47,12 @@ func NewServer() *Server {
 func (s *Server) newTX(key string) *Transaction {
 	return s.txs.newTX(key, s.conn)
 }
+
 func (s *Server) getTX(key string) *Transaction {
 	return s.txs.getTX(key)
 }
+
+// mustTX 相比较getTX,不存在则会新建合约
 func (s *Server) mustTX(key string) *Transaction {
 	tx := s.txs.getTX(key)
 	if tx == nil {
@@ -54,7 +61,7 @@ func (s *Server) mustTX(key string) *Transaction {
 	return tx
 }
 
-// ListenUDPServer ListenUDPServer
+// ListenUDPServer 监听UDP服务,阻塞同步
 func (s *Server) ListenUDPServer(addr string) {
 	udpaddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
@@ -88,12 +95,13 @@ func (s *Server) ListenUDPServer(addr string) {
 	}
 }
 
-// RegistHandler RegistHandler
+// RegistHandler 注册处理句柄
 func (s *Server) RegistHandler(method RequestMethod, handler RequestHandler) {
 	s.hmu.Lock()
 	s.requestHandlers[method] = handler
 	s.hmu.Unlock()
 }
+
 func (s *Server) handlerListen(msgs chan Message) {
 	var msg Message
 	for {
@@ -110,6 +118,7 @@ func (s *Server) handlerListen(msgs chan Message) {
 		}
 	}
 }
+
 func (s *Server) handlerRequest(msg *Request) {
 	tx := s.mustTX(getTXKey(msg))
 	logrus.Traceln("receive request from:", msg.Source(), ",method:", msg.Method(), "txKey:", tx.key, "message: \n", msg.String())

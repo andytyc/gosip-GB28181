@@ -13,13 +13,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Packet Packet
+// Packet 数据包/数据报文, 简称: 数据报文
 type Packet struct {
-	reader     *bufio.Reader
-	raddr      net.Addr
+	// reader 读对象
+	reader *bufio.Reader
+	// raddr 远端地址
+	raddr net.Addr
+	// bodylength 消息正文长度
 	bodylength int
 }
 
+// newPacket 新建数据报文
+//
+// data: 接收的数据, raddr: 远端地址
 func newPacket(data []byte, raddr net.Addr) Packet {
 	logrus.Traceln("receive new packet,from:", raddr.String(), string(data))
 	return Packet{
@@ -29,6 +35,7 @@ func newPacket(data []byte, raddr net.Addr) Packet {
 	}
 }
 
+// nextLine 按照行读取: 读取数据报文的下一行数据
 func (p *Packet) nextLine() (string, error) {
 	str, err := p.reader.ReadString('\n')
 	if err != nil {
@@ -71,13 +78,16 @@ type Connection interface {
 	WriteTo(buf []byte, raddr net.Addr) (num int, err error)
 }
 
-// Connection implementation.
+// Connection 连接的实现
 type connection struct {
+	// baseConn 开启监听后的连接对象,作为本connection结构体的基础连接对象
 	baseConn net.Conn
-	laddr    net.Addr
-	raddr    net.Addr
-	mu       sync.RWMutex
-	logKey   string
+	// 本地地址
+	laddr net.Addr
+	// 远端地址
+	raddr  net.Addr
+	mu     sync.RWMutex
+	logKey string
 }
 
 func newUDPConnection(baseConn net.Conn) Connection {

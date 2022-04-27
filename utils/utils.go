@@ -188,7 +188,7 @@ func sec2str(layout string, sec int64) string {
 	return nt
 }
 
-// ResolveSelfIP ResolveSelfIP
+// ResolveSelfIP 解决自身网络IP
 func ResolveSelfIP() (net.IP, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {

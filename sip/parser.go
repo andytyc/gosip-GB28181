@@ -556,8 +556,11 @@ func parseRecordRouteHeader(headerName string, headerText string) (headers []Hea
 	return []Header{&routeHeader}, nil
 }
 
+// parser 解析器 根据SIP协议传输格式,将数据报文packet解析为本服务可识别的消息结构体Message
 type parser struct {
-	out    chan Message
+	// out 解析完毕后等待被读取队列: 将parser解析结果Message输出
+	out chan Message
+	// in 接收到数据报文后等待解析队列: 对parser输入(对方来的消息),将数据报文packet解析成消息体Message
 	in     chan Packet
 	isStop bool
 }
@@ -567,10 +570,13 @@ func newParser() *parser {
 	go p.start()
 	return p
 }
+
+// start 停止解析任务
 func (p *parser) stop() {
 	p.isStop = true
 }
 
+// start 开启解析任务
 func (p *parser) start() {
 	var termErr error
 	var msg Message
@@ -584,6 +590,7 @@ func (p *parser) start() {
 			continue
 		}
 		if isRequest(startLine) {
+			// 对方请求
 			method, recipient, sipVersion, err := ParseRequestLine(startLine)
 			if err == nil {
 				msg = NewRequest("", method, recipient, sipVersion, []Header{}, "")
@@ -591,6 +598,7 @@ func (p *parser) start() {
 				termErr = utils.NewError(err, "parserMessage", "ParseRequestLine", startLine)
 			}
 		} else if isResponse(startLine) {
+			// 对方回复
 			sipVersion, statusCode, reason, err := ParseStatusLine(startLine)
 			if err == nil {
 				msg = NewResponse("", sipVersion, statusCode, reason, []Header{}, "")
@@ -664,7 +672,11 @@ func getStartLine(data []byte) (string, error) {
 	return bufio.NewReader(bytes.NewBuffer(data)).ReadString('\r')
 }
 
+// 计算 SIP 消息正文的大小, 就是数据报文中的 Packet.Content
+//
 // Calculate the size of a SIP message's body, given the entire contents of the message as a byte array.
+//
+// 计算 SIP 消息正文的大小，给定消息的全部内容作为字节数组。
 func getBodyLength(data []byte) int {
 
 	s := string(data)
@@ -679,15 +691,22 @@ func getBodyLength(data []byte) int {
 }
 
 // Heuristic to determine if the given transmission looks like a SIP request.
+//
+// 启发式确定给定的传输是否看起来像一个 SIP 请求。
+//
 // It is guaranteed that any RFC3261-compliant request will pass this test,
 // but invalid messages may not necessarily be rejected.
+//
+// 保证任何符合 RFC3261 的请求都会通过这个测试，但是无效的消息不一定会被拒绝。
 func isRequest(startLine string) bool {
 	// SIP request lines contain precisely two spaces.
+	// SIP 请求行正好包含两个空格。
 	if strings.Count(startLine, " ") != 2 {
 		return false
 	}
 
 	// Check that the version string starts with SIP.
+	// 检查版本字符串是否以 SIP 开头。
 	parts := strings.Split(startLine, " ")
 	if len(parts) < 3 {
 		return false
@@ -735,15 +754,21 @@ func ParseStatusLine(statusLine string) (
 }
 
 // Heuristic to determine if the given transmission looks like a SIP response.
+// 启发式确定给定的传输是否看起来像 SIP 响应。
+//
 // It is guaranteed that any RFC3261-compliant response will pass this test,
 // but invalid messages may not necessarily be rejected.
+//
+// 保证任何符合 RFC3261 的响应都会通过这个测试，但是无效的消息不一定会被拒绝。
 func isResponse(startLine string) bool {
 	// SIP status lines contain at least two spaces.
+	// SIP 状态行至少包含两个空格。
 	if strings.Count(startLine, " ") < 2 {
 		return false
 	}
 
 	// Check that the version string starts with SIP.
+	// 检查版本字符串是否以 SIP 开头。
 	parts := strings.Split(startLine, " ")
 	if len(parts) < 3 {
 		return false

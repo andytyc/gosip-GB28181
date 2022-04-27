@@ -9,8 +9,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// activeTX 内存激活/活跃合同映射表 key=key value=Transaction 其中的key其实就是callid
+// activeTX 内存已激活合同映射表 key=key value=Transaction 其中的key其实就是callid
 var activeTX *transacionts
+
+/*
+******************************************************/
 
 type transacionts struct {
 	txs map[string]*Transaction
@@ -45,7 +48,7 @@ func (txs *transacionts) rmTX(tx *Transaction) {
 /*
 ******************************************************/
 
-// Transaction 交易/合约
+// Transaction 交易/合约/交互, 简称:合同
 type Transaction struct {
 	// conn 连接实例对象
 	conn Connection
@@ -73,7 +76,7 @@ func (tx *Transaction) Key() string {
 	return tx.key
 }
 
-// watch 监听心跳
+// watch 监听激活
 func (tx *Transaction) watch() {
 	for {
 		select {
@@ -87,7 +90,7 @@ func (tx *Transaction) watch() {
 	}
 }
 
-// Close Close
+// Close 关闭合同
 func (tx *Transaction) Close() {
 	logrus.Traceln("closed tx", tx.key, time.Now().Format("2006-01-02 15:04:05"))
 	activeTX.rmTX(tx)
@@ -96,6 +99,8 @@ func (tx *Transaction) Close() {
 }
 
 // GetResponse 读取了对方的回复消息,从队列中读取,触发一次激活
+//
+// 注意: 假如对方没有回复消息(或者很久一直没回复,回复很慢超时),那么阻塞等待超时时间为20s
 func (tx *Transaction) GetResponse() *Response {
 	for {
 		res := <-tx.resp
@@ -105,7 +110,7 @@ func (tx *Transaction) GetResponse() *Response {
 		tx.active <- 2
 		logrus.Traceln("response tx", tx.key, time.Now().Format("2006-01-02 15:04:05"))
 		if res.StatusCode() == http.StatusContinue || res.statusCode == http.StatusSwitchingProtocols {
-			// Trying and Dialog Establishement 等待下一个返回
+			// Trying(100) and Dialog Establishement(101: 对话建立) 等待下一个返回
 			continue
 		}
 		return res
