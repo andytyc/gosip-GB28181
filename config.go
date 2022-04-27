@@ -9,17 +9,17 @@ import (
 
 // Config Config
 type Config struct {
-	// MOD 运行模式
+	// MOD 运行模式 | debug
 	MOD string `json:"mod" yaml:"mod" mapstructure:"mod"`
 	// DB 数据库
 	DB DBConfig `json:"database" yaml:"database" mapstructure:"database"`
-	// LogLevel 日志级别
+	// LogLevel 日志级别 | debug
 	LogLevel string `json:"logger" yaml:"logger" mapstructure:"logger"`
-	// UDP sip服务器udp端口(IP:Port)
+	// UDP sip服务器udp端口(IP:Port) | 0.0.0.0:5060
 	UDP string `json:"udp" yaml:"udp" mapstructure:"udp"`
-	// API sip服务 restfulapi 端口
+	// API sip服务 restfulapi 端口 | 0.0.0.0:8090
 	API string `json:"api" yaml:"api" mapstructure:"api"`
-	// Secret restful接口验证key 验证请求使用
+	// Secret restful接口验证key 验证请求使用 | z9hG4bK1233983766
 	Secret string `json:"secret" yaml:"secret" mapstructure:"secret"`
 	// Media 对接c++开发的zlm(即:ZLMediaKit),编译后的media服务:MediaServer
 	Media MediaServer `json:"media" yaml:"media" mapstructure:"media"`
@@ -36,7 +36,7 @@ type Config struct {
 
 // RecordCfg 视频录制,文件
 type RecordCfg struct {
-	// FilePath 录像文件路径, 备注: zlm 不会自动清理录制文件，需要配置录像文件路径和定时清理时间。
+	// FilePath 录像文件路径, 备注: zlm 不会自动清理录制文件，需要配置录像文件路径和定时清理时间。 | /usr/share/zlm/meida
 	FilePath string `json:"filepath" yaml:"filepath" mapstructure:"filepath"`
 	// 录制文件录制完成后多久删除,单位天
 	Expire int `json:"expire" yaml:"expire"  mapstructure:"expire"`
@@ -54,17 +54,17 @@ type Stream struct {
 
 // MediaServer 对接c++开发的zlm(即:ZLMediaKit),编译后的media服务:MediaServer
 type MediaServer struct {
-	// RESTFUL media 服务器restfulapi地址
+	// RESTFUL media 服务器restfulapi地址 | http://127.0.0.1:18081
 	RESTFUL string `json:"restful" yaml:"restful" mapstructure:"restful"`
-	// HTTP media 服务器 http请求地址
+	// HTTP media 服务器 http请求地址 | http://127.0.0.1:18081
 	HTTP string `json:"http" yaml:"http" mapstructure:"http"`
-	// WS media 服务器 ws请求地址
+	// WS media 服务器 ws请求地址 | ws://127.0.0.1:8080
 	WS string `json:"ws" yaml:"ws" mapstructure:"ws"`
-	// RTMP media 服务器 rtmp请求地址
+	// RTMP media 服务器 rtmp请求地址 | rtmp://127.0.0.1:1935
 	RTMP string `json:"rtmp" yaml:"rtmp" mapstructure:"rtmp"`
-	// RTP media rtp请求地址 zlm对外开放的接受rtp推流的地址
+	// RTP media rtp请求地址 zlm对外开放的接受rtp推流的地址 | http://192.168.1.90:10000
 	RTP string `json:"rtp" yaml:"rtp" mapstructure:"rtp"`
-	// Secret zlm secret key 用来请求zlm接口验证
+	// Secret zlm secret key 用来请求zlm接口验证 | 035c73f7-bb6b-4889-a715-d9eb2d1925cc
 	Secret string `json:"secret" yaml:"secret" mapstructure:"secret"`
 }
 

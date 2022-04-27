@@ -23,19 +23,28 @@ var sysTB = "sysinfo"
 var fileTB = "files"
 
 // sysInfo 对接GB28181协议,系统运行信息
+//
+// gb28181 域，系统id，用户id，通道id，用户数量，初次运行使用配置，之后保存数据库，如果数据库不存在使用配置文件内容
 type sysInfo struct {
-	// Region 当前域
+	// LID 系统ID/当前服务id | 37070000082008000001
+	LID string `json:"lid" bson:"lid" yaml:"lid" mapstructure:"lid"`
+	// Region 系统域/当前域 | 3707000008
 	Region string `json:"region" bson:"region"  yaml:"region" mapstructure:"region"`
-	// UID 用户id固定头部
+
+	// 用户id = uid + unum
+	//
+	// UID 用户id固定头部/用户NVR设备前缀 | 37070000081118
 	UID string `json:"uid" bson:"uid"  yaml:"uid" mapstructure:"uid"`
-	// UNUM 当前用户数
+	// UNUM 当前用户数 | 0
 	UNUM int `json:"unum" bson:"unum" yaml:"unum" mapstructure:"unum"`
-	// DID 设备id固定头部
+
+	// 通道id = did + dnum
+	//
+	// DID 设备id固定头部/通道设备前缀 | 37070000081318
 	DID string `json:"did" bson:"did" yaml:"did" mapstructure:"did"`
-	// DNUM 当前设备数
+	// DNUM 当前设备数 | 0
 	DNUM int `json:"dnum" bson:"dnum" yaml:"dnum" mapstructure:"dnum"`
-	// LID 当前服务id
-	LID         string `json:"lid" bson:"lid" yaml:"lid" mapstructure:"lid"`
+
 	MediaServer bool
 	// 媒体服务器接流地址
 	mediaServerRtpIP net.IP
@@ -49,10 +58,11 @@ func defaultInfo() sysInfo {
 
 // ActiveDevices 记录当前活跃设备，请求播放时设备必须处于活跃状态
 type ActiveDevices struct {
+	// key=userid value=NVRDevices
 	sync.Map
 }
 
-// Get Get
+// Get 获取用户活跃设备 key是用户id(userid)
 func (a *ActiveDevices) Get(key string) (NVRDevices, bool) {
 	if v, ok := a.Load(key); ok {
 		return v.(NVRDevices), ok
@@ -60,11 +70,13 @@ func (a *ActiveDevices) Get(key string) (NVRDevices, bool) {
 	return NVRDevices{}, false
 }
 
+// _activeDevices 当前活跃设备映射表
 var _activeDevices ActiveDevices
 
 // 系统运行信息
 var _sysinfo sysInfo
 
+// loadSYSInfo 初始化{推流内存同步映射表, 录制文件内存同步映射表},相关锁初始化(如:全局ssrc++),sysinfo表记录插入,RTP的IP和Port
 func loadSYSInfo() {
 
 	_activeDevices = ActiveDevices{sync.Map{}}

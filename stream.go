@@ -14,32 +14,47 @@ import (
 
 var streamTB = "streams"
 
-// DeviceStream DeviceStream
+// DeviceStream 表{streamTB: streams}的表结构
 type DeviceStream struct {
-	// 0  直播 1 历史
-	T          int
+	// T 流类型 0  直播 1 历史
+	T int
+
 	SSRC       string
 	DeviceID   string
 	UserID     string
-	StreamType string            //  pull 媒体服务器主动拉流，push 监控设备主动推流
-	Status     int               // 0正常 1关闭 -1 尚未开始
-	Ftag       map[string]string // header from params
-	Ttag       map[string]string // header to params
-	CallID     string            // header callid
-	Time       string
-	Stop       bool
+	StreamType string // pull 媒体服务器主动拉流，push 监控设备主动推流
+
+	// Status 0正常 1关闭 -1 尚未开始
+	Status int
+
+	Ftag   map[string]string // header from params
+	Ttag   map[string]string // header to params
+	CallID string            // header callid
+
+	Time string
+	// Stop 是否停止推/拉流
+	Stop bool
 }
 
 type playList struct {
-	// key=ssrc value=PlayParams  播放对应的PlayParams 用来发送bye获取tag，callid等数据
+	// ssrcResponse 回复ssrc对应那条消息的相关参数
+	//
+	// key=ssrc value=PlayParams 播放对应的PlayParams 用来发送bye获取tag，callid等数据
 	ssrcResponse *sync.Map
-	// key=deviceid value={ssrc,path}  当前设备直播信息，防止重复直播
+
+	// devicesSucc 对设备ID唯一映射,防止重复直播
+	//
+	// key=deviceid value={ssrc,path} 当前设备直播信息，防止重复直播
 	devicesSucc *sync.Map
-	ssrc        int
+
+	// ssrc ssrc编号
+	ssrc int
 }
 
+// _playList 推流内存同步映射表
 var _playList playList
 
+// getSSRC 获取一个新的可用的ssrc编号(没有流在使用或在占用)
 func getSSRC(t int) string {
 	r := false
 	for {
@@ -49,7 +64,7 @@ func getSSRC(t int) string {
 		if err := dbClient.Get(streamTB, M{"ssrc": ssrc2stream(key), "stop": false}, &stream); err == mongo.ErrNoDocuments || stream.SSRC == "" {
 			return key
 		}
-		if _playList.ssrc > 9000 && !r {
+		if _playList.ssrc > 9000 && !r { //约束上限:1~9000
 			_playList.ssrc = 0
 			r = true
 		}
@@ -151,7 +166,7 @@ func checkStream() {
 			dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"status": 1, "stop": true}})
 
 		}
-		if len(streams) != 100 {
+		if len(streams) != 100 { // 翻页结束
 			break
 		}
 		skip += 100

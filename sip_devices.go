@@ -13,7 +13,7 @@ import (
 const userTB = "users"     // 用户表 NVR表
 const deviceTB = "devices" // 设备表 摄像头
 
-// NVRDevices NVR  设备信息
+// NVRDevices NVR设备信息
 type NVRDevices struct {
 	DBModel
 	// Name 设备名称
@@ -36,7 +36,7 @@ type NVRDevices struct {
 	RAddr string `json:"raddr" bson:"raddr"`
 	// Manufacturer 制造厂商
 	Manufacturer string `xml:"Manufacturer" bson:"manufacturer" json:"manufacturer"`
-	// 设备类型DVR，NVR
+	// 设备类型DVR，NVR
 	DeviceType string `xml:"DeviceType" bson:"devicetype" json:"devicetype"`
 	// Firmware 固件版本
 	Firmware string `bson:"firmware" json:"firmware"`

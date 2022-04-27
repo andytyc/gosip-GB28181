@@ -29,9 +29,9 @@ var (
 
 // DBConfig 数据库(mongo)
 type DBConfig struct {
-	// Addr mongo数据库地址(IP:Port)
+	// Addr mongo数据库地址(IP:Port) | mongodb://localhost:27017
 	Addr string `json:"addr" yaml:"addr" mapstructure:"addr"`
-	// DBName 数据库
+	// DBName 数据库 | sip
 	DBName string `json:"db" yaml:"db" mapstructure:"db"`
 	// Retry 对于写操作，若出现错误时是否重试, 备注:mongo-driver/mongo/options支持的
 	Retry *bool `json:"retry" yaml:"retry"`
@@ -49,7 +49,8 @@ type DBClient interface {
 	// Get 查询一条记录
 	Get(tb string, query interface{}, obj interface{}) error
 	Count(tb string, query interface{}) (int64, error)
-	Find(string, interface{}, int64, int64, string, bool, interface{}) (int64, error)
+	// Find 查询列表 intput:表,条件,分页,排序,是否查询总数 output:总数,错误
+	Find(tb string, query interface{}, skip, limit int64, sort string, total bool, obj interface{}) (int64, error)
 	Del(string, interface{}) error
 	DelMany(string, interface{}) (int64, int64, error)
 }
