@@ -177,20 +177,36 @@ func (msg *message) SetDestination(dest net.Addr) {
 }
 
 // URI  A SIP or SIPS URI, including all params and URI header params.
+// URI SIP 或 SIPS URI，包括所有参数和 URI 标头参数。
 //noinspection GoNameStartsWithPackageName
 type URI struct {
+	// 是否传输加密
+	//
 	// True if and only if the URI is a SIPS URI.
+	// 当且仅当 URI 是 SIPS URI 时为真。
 	FIsEncrypted bool
 
+	// 用户名
+	//
 	// The user part of the URI: the 'joe' in sip:joe@bloggs.com
 	// This is a pointer, so that URIs without a user part can have 'nil'.
+	//
+	// URI 的用户部分：sip:joe@bloggs.com 中的 'joe'
+	// 这是一个指针，因此没有用户部分的 URI 可以有 'nil'。
 	FUser MaybeString
 
+	// 用户密码
+	//
 	// The password field of the URI. This is represented in the URI as joe:hunter2@bloggs.com.
 	// Note that if a URI has a password field, it *must* have a user field as well.
 	// This is a pointer, so that URIs without a password field can have 'nil'.
 	// Note that RFC 3261 strongly recommends against the use of password fields in SIP URIs,
 	// as they are fundamentally insecure.
+	//
+	// URI 的密码字段。 这在 URI 中表示为 joe:hunter2@bloggs.com。
+	// 请注意，如果 URI 有密码字段，它*必须*也有用户字段。
+	// 这是一个指针，因此没有密码字段的 URI 可以有 'nil'。
+	// 请注意，RFC 3261 强烈建议不要在 SIP URI 中使用密码字段，因为它们根本不安全。
 	FPassword MaybeString
 
 	// The host part of the URI. This can be a domain, or a string representation of an IP address.

@@ -782,9 +782,14 @@ func isResponse(startLine string) bool {
 // ParseURI converts a string representation of a URI into a Uri object.
 // If the URI is malformed, or the URI schema is not recognised, an error is returned.
 // URIs have the general form of schema:address.
+//
+// ParseURI 将 URI 的字符串表示形式转换为 Uri 对象。
+// 如果 URI 格式错误，或者 URI 模式无法识别，则返回错误。
+// URI 具有 schema:address 的一般形式。
 func ParseURI(uriStr string) (uri *URI, err error) {
 	if strings.TrimSpace(uriStr) == "*" {
 		// Wildcard '*' URI used in the Contact headers of REGISTERs when unregistering.
+		// 注销时在 REGISTER 的联系人标头中使用的通配符 '*' URI。
 		err = fmt.Errorf("no Support *")
 		return
 	}
@@ -808,11 +813,15 @@ func ParseURI(uriStr string) (uri *URI, err error) {
 }
 
 // ParseSipURI converts a string representation of a SIP or SIPS URI into a SipURI object.
+//
+// ParseSipURI 将 SIP 或 SIPS URI 的字符串表示形式转换为 SipURI 对象。
 func ParseSipURI(uriStr string) (uri URI, err error) {
 	// Store off the original URI in case we need to print it in an error.
+	// 保存原始 URI，以防我们需要在错误中打印它。
 	uriStrCopy := uriStr
 
 	// URI should start 'sip' or 'sips'. Check the first 3 chars.
+	// URI 应该以 'sip' 或 'sips' 开头。 检查前 3 个字符。
 	if strings.ToLower(uriStr[:3]) != "sip" {
 		err = fmt.Errorf("invalid SIP uri protocol name in '%s'", uriStrCopy)
 		return
@@ -821,11 +830,13 @@ func ParseSipURI(uriStr string) (uri URI, err error) {
 
 	if strings.ToLower(uriStr[0:1]) == "s" {
 		// URI started 'sips', so it's encrypted.
+		// URI 以 'sips' 开头，所以它是加密的。
 		uri.FIsEncrypted = true
 		uriStr = uriStr[1:]
 	}
 
 	// The 'sip' or 'sips' protocol name should be followed by a ':' character.
+	// 'sip' 或 'sips' 协议名称后面应该跟一个 ':' 字符。
 	if uriStr[0] != ':' {
 		err = fmt.Errorf("no ':' after protocol name in SIP uri '%s'", uriStrCopy)
 		return
@@ -835,9 +846,13 @@ func ParseSipURI(uriStr string) (uri URI, err error) {
 	// SIP URIs may contain a user-info part, ending in a '@'.
 	// This is the only place '@' may occur, so we can use it to check for the
 	// existence of a user-info part.
+	//
+	// SIP URI 可能包含用户信息部分，以“@”结尾。
+	// 这是唯一可能出现“@”的地方，因此我们可以使用它来检查用户信息部分是否存在。
 	endOfUserInfoPart := strings.Index(uriStr, "@")
 	if endOfUserInfoPart != -1 {
 		// A user-info part is present. These take the form:
+		// 存在用户信息部分。 它们采用以下形式：[]就是可选, 示例：user@ 或 user:password@
 		//     user [ ":" password ] "@"
 		endOfUsernamePart := strings.Index(uriStr, ":")
 		if endOfUsernamePart > endOfUserInfoPart {
@@ -847,6 +862,8 @@ func ParseSipURI(uriStr string) (uri URI, err error) {
 		if endOfUsernamePart == -1 {
 			// No password component; the whole of the user-info part before
 			// the '@' is a username.
+			//
+			// 没有密码组件； '@' 之前的整个用户信息部分是用户名。
 			uri.FUser = String{Str: uriStr[:endOfUserInfoPart]}
 		} else {
 			uri.FUser = String{Str: uriStr[:endOfUsernamePart]}
@@ -856,13 +873,16 @@ func ParseSipURI(uriStr string) (uri URI, err error) {
 	}
 
 	// A ';' indicates the beginning of a URI params section, and the end of the URI itself.
+	// 一种 ';' 指示 URI 参数部分的开始，以及 URI 本身的结束。
 	endOfURIPart := strings.Index(uriStr, ";")
 	if endOfURIPart == -1 {
 		// There are no URI parameters, but there might be header parameters (introduced by '?').
+		// 没有URI参数，但可能有头参数（由'?'引入）。
 		endOfURIPart = strings.Index(uriStr, "?")
 	}
 	if endOfURIPart == -1 {
 		// There are no parameters at all. The URI ends after the host[:port] part.
+		// 根本没有参数。 URI 在 host[:port] 部分之后结束。
 		endOfURIPart = len(uriStr)
 	}
 
