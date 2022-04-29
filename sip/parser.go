@@ -619,7 +619,7 @@ func (p *parser) start() {
 				if err == nil {
 					headers = append(headers, newHeaders...)
 				} else {
-					logrus.Warnf("skip header '%s' due to error: %s", buffer, err)
+					logrus.Warnf("skip header '%v' due to error: %s", buffer, err)
 				}
 				buffer.Reset()
 			}
@@ -633,6 +633,8 @@ func (p *parser) start() {
 			if len(line) == 0 {
 				// We've hit the end of the header section.
 				// Parse anything remaining in the buffer, then break out.
+				// 我们已经到了标题部分的末尾。
+				// 解析缓冲区中剩余的任何内容，然后中断。
 				flushBuffer()
 				break
 			}
@@ -640,15 +642,19 @@ func (p *parser) start() {
 			if !strings.Contains(abnfWs, string(line[0])) {
 				// This line starts a new header.
 				// Parse anything currently in the buffer, then store the new header line in the buffer.
+				// 这一行开始一个新的标题。
+				// 解析当前缓冲区中的任何内容，然后将新的标题行存储在缓冲区中。
 				flushBuffer()
 				buffer.WriteString(line)
 			} else if buffer.Len() > 0 {
 				// This is a continuation line, so just add it to the buffer.
+				// 这是一个续行，所以只需将它添加到缓冲区中。
 				buffer.WriteString(" ")
 				buffer.WriteString(line)
 			}
 		}
 		// Store the headers in the message object.
+		// 将标头存储在消息对象中。
 		for _, header := range headers {
 			msg.AppendHeader(header)
 		}
@@ -698,6 +704,9 @@ func getBodyLength(data []byte) int {
 // but invalid messages may not necessarily be rejected.
 //
 // 保证任何符合 RFC3261 的请求都会通过这个测试，但是无效的消息不一定会被拒绝。
+//
+// 找一个注册的请求例子:
+// REGISTER sip:34020000002000000001@192.168.0.66:5060 SIP/2.0
 func isRequest(startLine string) bool {
 	// SIP request lines contain precisely two spaces.
 	// SIP 请求行正好包含两个空格。
@@ -708,9 +717,9 @@ func isRequest(startLine string) bool {
 	// Check that the version string starts with SIP.
 	// 检查版本字符串是否以 SIP 开头。
 	parts := strings.Split(startLine, " ")
-	if len(parts) < 3 {
+	if len(parts) < 3 { // 总共至少3块
 		return false
-	} else if len(parts[2]) < 3 {
+	} else if len(parts[2]) < 3 { // 至少有sip三个字符
 		return false
 	} else {
 		return strings.ToUpper(parts[2][:3]) == "SIP"
@@ -720,6 +729,9 @@ func isRequest(startLine string) bool {
 // ParseRequestLine the first line of a SIP request, e.g:
 //   INVITE bob@example.com SIP/2.0
 //   REGISTER jane@telco.com SIP/1.0
+//
+// 找一个注册的请求例子:
+// REGISTER sip:34020000002000000001@192.168.0.66:5060 SIP/2.0
 func ParseRequestLine(requestLine string) (
 	method RequestMethod, recipient *URI, sipVersion string, err error) {
 	parts := strings.Split(requestLine, " ")
@@ -728,15 +740,18 @@ func ParseRequestLine(requestLine string) (
 		return
 	}
 
-	method = RequestMethod(strings.ToUpper(parts[0]))
-	recipient, err = ParseURI(parts[1])
-	sipVersion = parts[2]
+	method = RequestMethod(strings.ToUpper(parts[0])) // REGISTER
+	recipient, err = ParseURI(parts[1])               // sip:34020000002000000001@192.168.0.66:5060, 通用解析方法ParseURI
+	sipVersion = parts[2]                             // SIP/2.0
 	return
 }
 
 // ParseStatusLine the first line of a SIP response, e.g:
 //   SIP/2.0 200 OK
 //   SIP/1.0 403 Forbidden
+//
+// 找一个注册的回复例子:
+// SIP/2.0 401 Unauthorized
 func ParseStatusLine(statusLine string) (
 	sipVersion string, statusCode int, reasonPhrase string, err error) {
 	parts := strings.Split(statusLine, " ")
@@ -745,10 +760,10 @@ func ParseStatusLine(statusLine string) (
 		return
 	}
 
-	sipVersion = parts[0]
-	statusCodeRaw, err := strconv.ParseUint(parts[1], 10, 16)
+	sipVersion = parts[0]                                     // SIP/2.0
+	statusCodeRaw, err := strconv.ParseUint(parts[1], 10, 16) // 401
 	statusCode = int(statusCodeRaw)
-	reasonPhrase = strings.Join(parts[2:], " ")
+	reasonPhrase = strings.Join(parts[2:], " ") // Unauthorized
 
 	return
 }
@@ -760,6 +775,9 @@ func ParseStatusLine(statusLine string) (
 // but invalid messages may not necessarily be rejected.
 //
 // 保证任何符合 RFC3261 的响应都会通过这个测试，但是无效的消息不一定会被拒绝。
+//
+// 找一个注册的回复例子:
+// SIP/2.0 401 Unauthorized
 func isResponse(startLine string) bool {
 	// SIP status lines contain at least two spaces.
 	// SIP 状态行至少包含两个空格。
@@ -772,7 +790,7 @@ func isResponse(startLine string) bool {
 	parts := strings.Split(startLine, " ")
 	if len(parts) < 3 {
 		return false
-	} else if len(parts[0]) < 3 {
+	} else if len(parts[0]) < 3 { // 至少存在sip三个字符
 		return false
 	} else {
 		return strings.ToUpper(parts[0][:3]) == "SIP"
@@ -900,6 +918,10 @@ func ParseSipURI(uriStr string) (uri URI, err error) {
 	// These are key-value pairs separated by ';'.
 	// They end at the end of the URI, or at the start of any URI headers
 	// which may be present (denoted by an initial '?').
+	//
+	// 现在解析任何 URI 参数。
+	// 这些是键值对，用 ';' 开头 也用 ";" 分隔。
+	// 它们在 URI 的末尾结束，或者在可能存在的任何 URI 标头的开头（由初始的“？”表示）。
 	var uriParams Params
 	var n int
 	if uriStr[0] == ';' {
@@ -915,6 +937,9 @@ func ParseSipURI(uriStr string) (uri URI, err error) {
 
 	// Finally parse any URI headers.
 	// These are key-value pairs, starting with a '?' and separated by '&'.
+	//
+	// 最后解析任何 URI 标头。
+	// 这些是键值对，以“？”开头 并用'&'分隔。
 	var headers Params
 	headers, n, err = ParseParams(uriStr, '?', '&', 0, true, false)
 	if err != nil {
@@ -925,7 +950,7 @@ func ParseSipURI(uriStr string) (uri URI, err error) {
 	if len(uriStr) > 0 {
 		err = fmt.Errorf("internal error: parse of SIP uri ended early! '%s'",
 			uriStrCopy)
-		return // Defensive return
+		return // Defensive return // 防守返回
 	}
 
 	return
@@ -934,6 +959,9 @@ func ParseSipURI(uriStr string) (uri URI, err error) {
 // ParseHostPort a text representation of a host[:port] pair.
 // The port may or may not be present, so we represent it with a *uint16,
 // and return 'nil' if no port was present.
+//
+// ParseHostPort 一个 host[:port] 对的文本表示。
+// 端口可能存在也可能不存在，所以我们用 *uint16 表示它，如果不存在端口，则返回 'nil'。
 func ParseHostPort(rawText string) (host string, port *Port, err error) {
 	colonIdx := strings.Index(rawText, ":")
 	if colonIdx == -1 {
@@ -942,12 +970,13 @@ func ParseHostPort(rawText string) (host string, port *Port, err error) {
 	}
 
 	// Surely there must be a better way..!
+	// 当然必须有更好的方法..！
 	var portRaw64 uint64
 	var portRaw16 uint16
 	host = rawText[:colonIdx]
-	portRaw64, err = strconv.ParseUint(rawText[colonIdx+1:], 10, 16)
+	portRaw64, err = strconv.ParseUint(rawText[colonIdx+1:], 10, 16) // 一个IP地址的端口通过16bit进行编号，最多可以有65536(2^16)个端口(0---65535)
 	portRaw16 = uint16(portRaw64)
-	port = (*Port)(&portRaw16)
+	port = (*Port)(&portRaw16) // 将*uint16指针转换为*Port指针
 
 	return
 }
@@ -962,6 +991,20 @@ func ParseHostPort(rawText string) (host string, port *Port, err error) {
 // parser and omitted from the returned map.
 // If permitSingletons is true, keys with no values are permitted.
 // These will result in a nil value in the returned map.
+//
+// ParseParams 用于解析 'key=value' 参数的通用实用方法。
+//
+// 获取一个字符串（源），确保它以提供的 'start' 字符开始，然后解析以 'sep' 分隔的连续键/值对，直到达到 'end' 或没有剩余字符。
+// 将返回键到值的映射，以及消耗的字符数。
+//
+// 为 start 或 end 提供 0 表示没有开始/结束分隔符。
+//
+// 如果 quoteValues 为真，值可以用双引号括起来，这将由解析器验证并从返回的映射中省略。
+// 如果 permitSingletons 为真，则允许没有值的键。
+// 这些将在返回的映射中产生一个 nil 值。
+//
+// source: 源字符串, start,sep,end: 开头/分隔/结尾字节
+// consumed: 消耗
 func ParseParams(
 	source string,
 	start uint8,
@@ -976,10 +1019,12 @@ func ParseParams(
 
 	if len(source) == 0 {
 		// Key-value section is completely empty; return defaults.
+		// 键值部分完全为空； 返回默认值。
 		return
 	}
 
 	// Ensure the starting character is correct.
+	// 确保起始字符正确。
 	if start != 0 {
 		if source[0] != start {
 			err = fmt.Errorf(
@@ -994,10 +1039,13 @@ func ParseParams(
 	}
 
 	// Statefully parse the given string one character at a time.
+	// 一次有状态地解析给定的字符串一个字符。
+	//
+	// loop: 循环,环形
 	var buffer bytes.Buffer
 	var key string
-	parsingKey := true // false implies we are parsing a value
-	inQuotes := false
+	parsingKey := true // false implies we are parsing a value // true 表示我们正在解析一个键值对{key=value}的key
+	inQuotes := false  // true 表示在引号中, 因为value可以用引号包含: key=value 或 key="value"
 parseLoop:
 	for ; consumed < len(source); consumed++ {
 		switch source[consumed] {
@@ -1005,6 +1053,8 @@ parseLoop:
 			if inQuotes {
 				// We read an end character, but since we're inside quotations we should
 				// treat it as a literal part of the value.
+				//
+				// 我们读取了一个结束字符，但由于我们在引号内，我们应该将其视为值的文字部分。
 				buffer.WriteString(string(end))
 				continue
 			}
@@ -1015,9 +1065,12 @@ parseLoop:
 			if inQuotes {
 				// We read a separator character, but since we're inside quotations
 				// we should treat it as a literal part of the value.
+				//
+				// 我们读取了一个分隔符，但由于我们在引号内，我们应该将其视为值的文字部分。
 				buffer.WriteString(string(sep))
 				continue
 			}
+
 			if parsingKey && permitSingletons {
 				params.Add(buffer.String(), nil)
 			} else if parsingKey {
@@ -1028,26 +1081,29 @@ parseLoop:
 				)
 				return
 			} else {
-				params.Add(key, String{Str: buffer.String()})
+				params.Add(key, String{Str: buffer.String()}) // 读取到分隔,之前的key已经读取,此时内存buffer中的值读取出来就是完整的value值
 			}
-			buffer.Reset()
-			parsingKey = true
+			buffer.Reset()    // 重置内存buffer
+			parsingKey = true // 此时准备开始读取下一个key
 
 		case '"':
 			if !quoteValues {
 				// We hit a quote character, but since quoting is turned off we treat it as a literal.
+				// 我们点击了一个引号字符，但由于引号被关闭，我们将其视为文字。
 				buffer.WriteString("\"")
 				continue
 			}
 
 			if parsingKey {
 				// Quotes are never allowed in keys.
+				// 键中永远不允许使用引号。
 				err = fmt.Errorf("unexpected '\"' in parameter key in params \"%s\"", source)
 				return
 			}
 
 			if !inQuotes && buffer.Len() != 0 {
 				// We hit an initial quote midway through a value; that's not allowed.
+				// 我们在一个值的中间点了一个初始引号； 这是不允许的。
 				err = fmt.Errorf("unexpected '\"' in params \"%s\"", source)
 				return
 			}
@@ -1056,13 +1112,14 @@ parseLoop:
 				consumed != len(source)-1 &&
 				source[consumed+1] != sep {
 				// We hit an end-quote midway through a value; that's not allowed.
+				// 我们在一个值的中间点了一个结束引号； 这是不允许的。
 				err = fmt.Errorf("unexpected character %c after quoted param in \"%s\"",
 					source[consumed+1], source)
 
 				return
 			}
 
-			inQuotes = !inQuotes
+			inQuotes = !inQuotes // 若之前没有在引号中,那么此时在引号中了
 
 		case '=':
 			if buffer.Len() == 0 {
@@ -1073,13 +1130,14 @@ parseLoop:
 				err = fmt.Errorf("unexpected '=' char in value token: \"%s\"", source)
 				return
 			}
-			key = buffer.String()
-			buffer.Reset()
-			parsingKey = false
+			key = buffer.String() // 从内存buffer中读取key键
+			buffer.Reset()        // 重置内存buffer
+			parsingKey = false    // 已读取到了key,下一步读取value
 
 		default:
 			if !inQuotes && strings.Contains(abnfWs, string(source[consumed])) {
 				// Skip unquoted whitespace.
+				// 跳过未加引号的空格。
 				continue
 			}
 
@@ -1089,6 +1147,8 @@ parseLoop:
 
 	// The param string has ended. Check that it ended in a valid place, and then store off the
 	// contents of the buffer.
+	//
+	// 参数字符串已经结束。 检查它是否在有效位置结束，然后存储缓冲区(buffer)的内容。
 	if inQuotes {
 		err = fmt.Errorf("unclosed quotes in parameter string: %s", source)
 	} else if parsingKey && permitSingletons {

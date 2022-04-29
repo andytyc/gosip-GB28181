@@ -48,22 +48,23 @@ func (port *Port) Equals(other interface{}) bool {
 	return false
 }
 
-// MaybeString  wrapper
+// MaybeString 包裹接口 | 实现的结构有: String,Port
 type MaybeString interface {
 	String() string
 	Equals(other interface{}) bool
 }
 
-// String string
+// String 存储字符串
 type String struct {
 	Str string
 }
 
+// String 读取字符串的值
 func (str String) String() string {
 	return str.Str
 }
 
-// Equals Equals
+// Equals Sting之间的比较(比较的是存储的字符串值是否一样)
 func (str String) Equals(other interface{}) bool {
 	if v, ok := other.(String); ok {
 		return str.Str == v.Str

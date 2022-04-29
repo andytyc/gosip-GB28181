@@ -177,16 +177,33 @@ func (msg *message) SetDestination(dest net.Addr) {
 }
 
 // URI  A SIP or SIPS URI, including all params and URI header params.
+//
 // URI SIP 或 SIPS URI，包括所有参数和 URI 标头参数。
 //noinspection GoNameStartsWithPackageName
+//
+// 格式:
+// sip/sips : user[:password] @ IP[:Port]/Demain [;key=val;key=val] [?key=val&key=val]
+//
+// sip:34020000002000000001@192.168.0.66:5060
+// sip:34020000002000000001@3402000000
+// sips:34020000002000000001@3402000000
+// sip:34020000002000000001:123346@3402000000
+// sip:34020000002000000001:123346@192.168.0.66:5060
+// sips:34020000002000000001:123346@192.168.0.66:5060;type=12;
+// sips:34020000002000000001:123346@192.168.0.66:5060?type=12;
+//
+// URI 解析方法见 sip.parser.go 的
+// func ParseURI(uriStr string) (uri *URI, err error) {
+// func ParseSipURI(uriStr string) (uri URI, err error) {
+// func ParseParams(){}
 type URI struct {
-	// 是否传输加密
+	// URI 是否传输加密
 	//
 	// True if and only if the URI is a SIPS URI.
 	// 当且仅当 URI 是 SIPS URI 时为真。
 	FIsEncrypted bool
 
-	// 用户名
+	// URI 的用户部分, 通常会是用户ID(编号)
 	//
 	// The user part of the URI: the 'joe' in sip:joe@bloggs.com
 	// This is a pointer, so that URIs without a user part can have 'nil'.
@@ -195,7 +212,7 @@ type URI struct {
 	// 这是一个指针，因此没有用户部分的 URI 可以有 'nil'。
 	FUser MaybeString
 
-	// 用户密码
+	// URI 的密码字段, 可选
 	//
 	// The password field of the URI. This is represented in the URI as joe:hunter2@bloggs.com.
 	// Note that if a URI has a password field, it *must* have a user field as well.
@@ -209,23 +226,55 @@ type URI struct {
 	// 请注意，RFC 3261 强烈建议不要在 SIP URI 中使用密码字段，因为它们根本不安全。
 	FPassword MaybeString
 
+	// URI 的主机部分
+	//
 	// The host part of the URI. This can be a domain, or a string representation of an IP address.
+	//
+	// URI 的主机部分。这可以是域，也可以是 IP 地址的字符串表示形式。
 	FHost string
 
+	// URI 的端口部分, 可选
+	//
 	// The port part of the URI. This is optional, and so is represented here as a pointer type.
+	//
+	// URI 的端口部分。这是可选的，因此这里表示为指针类型。
 	FPort *Port
 
+	// 与 URI 关联的任何参数, 可选
+	//
 	// Any parameters associated with the URI.
 	// These are used to provide information about requests that may be constructed from the URI.
 	// (For more details, see RFC 3261 section 19.1.1).
 	// These appear as a semicolon-separated list of key=value pairs following the host[:port] part.
+	//
+	// 与 URI 关联的任何参数。
+	// 这些用于提供有关可能从 URI 构造的请求的信息。
+	//（有关更多详细信息，请参阅 RFC 3261 第 19.1.1 节）。
+	// 这些以分号分隔的 key=value 对列表的形式出现在 host[:port] 部分之后。
+	//
+	// 规则: ;开头 ;分隔 ?结尾
+	//
+	// 解析方法见 sip.parser.go 的
+	// func ParseParams(){}
 	FUriParams Params
 
+	// URI 构造的请求中的任何标头, 可选
+	//
 	// Any headers to be included on requests constructed from this URI.
 	// These appear as a '&'-separated list at the end of the URI, introduced by '?'.
 	// Although the values of the map are MaybeStrings, they will never be NoString in practice as the parser
 	// guarantees to not return blank values for header elements in SIP URIs.
 	// You should not set the values of headers to NoString.
+	//
+	// 要包含在从此 URI 构造的请求中的任何标头。
+	// 这些在 URI 末尾显示为一个以 '&' 分隔的列表，由 '?' 引入。
+	// 虽然映射的值是 MaybeStrings，但实际上它们永远不会是 NoString，因为解析器保证不会为 SIP URI 中的标头元素返回空白值。
+	// 您不应将标头的值设置为 NoString。
+	//
+	// 规则: ?开头 &分隔 没有结尾符合
+	//
+	// 解析方法见 sip.parser.go 的
+	// func ParseParams(){}
 	FHeaders Params
 }
 

@@ -9,14 +9,14 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-// Request Request
+// Request 请求实体
 type Request struct {
-	message
+	message   // 包含message结构,注意: 有重复方法的则是Request的(重写了),否则是message的方法
 	method    RequestMethod
 	recipient *URI
 }
 
-// NewRequest NewRequest
+// NewRequest 创建一个请求对象 | 对方请求 或 我方请求
 func NewRequest(
 	messID MessageID,
 	method RequestMethod,

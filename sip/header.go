@@ -259,7 +259,12 @@ func NewAddressFromFromHeader(from *FromHeader) *Address {
 	return addr
 }
 
+/* headers 标头/请求头
+************************************************************************/
+
 // Header is a single SIP header.
+//
+// Header 实现了单个 SIP 标头的接口
 type Header interface {
 	// Name returns header name.
 	Name() string
@@ -270,10 +275,14 @@ type Header interface {
 }
 
 // headers is a struct with methods to work with SIP headers.
+//
+// headers 是一个结构体，其中包含使用多个 SIP 标头的方法。
 type headers struct {
 	// The logical SIP headers attached to this message.
+	// 附加到此消息的逻辑 SIP 标头。包含一次数据报文的message的所有逻辑标头
 	headers map[string][]Header
 	// The order the headers should be displayed in.
+	// 标题的显示顺序。
 	headerOrder []string
 }
 
@@ -481,11 +490,13 @@ func (hs *headers) CloneHeaders() []Header {
 
 // Params implementation.
 type headerParams struct {
-	params     map[string]MaybeString
+	params     map[string]MaybeString // 比如: header 就是key: value
 	paramOrder []string
 }
 
 // NewParams Create an empty set of parameters.
+//
+// NewParams 创建一个空的参数集。
 func NewParams() Params {
 	return &headerParams{
 		params:     make(map[string]MaybeString),
