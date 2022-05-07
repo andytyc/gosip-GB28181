@@ -24,7 +24,7 @@ type Response struct {
 	reason     string
 }
 
-// NewResponseFromRequest | 根据对方请求回复消息
+// NewResponseFromRequest | 根据对方请求req, 新建一个回复消息
 func NewResponseFromRequest(
 	resID MessageID,
 	req *Request,
@@ -62,7 +62,7 @@ func NewResponseFromRequest(
 	return res
 }
 
-// NewResponse | 回复消息
+// NewResponse | 新建一个回复消息
 func NewResponse(
 	messID MessageID,
 	sipVersion string,
@@ -111,10 +111,13 @@ func (res *Response) StatusCode() int {
 }
 
 // StartLine returns Response Status Line - RFC 2361 7.2.
+//
+// StartLine 返回响应状态行 - RFC 2361 7.2。
 func (res *Response) StartLine() string {
 	var buffer bytes.Buffer
 
 	// Every SIP response starts with a Status Line - RFC 2361 7.2.
+	// 每个 SIP 响应都以状态行开头 - RFC 2361 7.2。
 	buffer.WriteString(
 		fmt.Sprintf(
 			"%s %d %s",

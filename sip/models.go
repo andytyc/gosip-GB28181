@@ -82,7 +82,7 @@ var ContentTypeSDP = ContentType("application/sdp")
 var ContentTypeXML = ContentType("Application/MANSCDP+xml")
 
 var (
-	// CatalogXML 获取设备列表xml样式
+	// CatalogXML 获取设备列表xml样式 | 也就是:查询它下边的目录和设备信息
 	CatalogXML = `<?xml version="1.0"?>
 <Query>
 <CmdType>Catalog</CmdType>
@@ -117,7 +117,7 @@ func GetDeviceInfoXML(id string) string {
 	return fmt.Sprintf(DeviceInfoXML, id)
 }
 
-// GetCatalogXML 获取NVR下设备列表指令
+// GetCatalogXML 获取NVR下设备列表指令 | 也就是:查询它下边的目录和设备信息
 func GetCatalogXML(id string) string {
 	return fmt.Sprintf(CatalogXML, id)
 }

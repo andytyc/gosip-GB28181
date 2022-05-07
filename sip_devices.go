@@ -145,7 +145,7 @@ func sipDeviceInfo(to NVRDevices) {
 	}
 }
 
-// sipCatalog 获取注册设备包含的列表
+// sipCatalog 获取注册设备包含的列表 | 也就是:查询它下边的目录和设备信息
 func sipCatalog(to NVRDevices) {
 	hb := sip.NewHeaderBuilder().SetTo(to.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
@@ -191,7 +191,7 @@ func sipMessageDeviceInfo(u NVRDevices, body string) error {
 	return nil
 }
 
-// MessageDeviceListResponse 设备明细列表返回结构
+// MessageDeviceListResponse 设备明细列表返回结构 | 查询目录和设备信息接口的响应体(xml)
 type MessageDeviceListResponse struct {
 	CmdType  string    `xml:"CmdType"`
 	SN       int       `xml:"SN"`
@@ -200,6 +200,7 @@ type MessageDeviceListResponse struct {
 	Item     []Devices `xml:"DeviceList>Item"`
 }
 
+// sipMessageCatalog CmdType: Catalog | 收到服务/主设备(u)下的目录和设备信息
 func sipMessageCatalog(u NVRDevices, body string) error {
 	message := &MessageDeviceListResponse{}
 	if err := utils.XMLDecode([]byte(body), message); err != nil {

@@ -9,7 +9,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// MessageReceive 接收到的请求数据最外层，主要用来判断数据类型
+// MessageReceive 接收到的 "sip.Method: MESSAGE" 方法的请求数据最外层，主要用来判断数据类型(CmdType)
+//
+// xml的具体结构,可以参考sip.models的指令 xml 字符串
 type MessageReceive struct {
 	CmdType string `xml:"CmdType"`
 	SN      int    `xml:"SN"`
@@ -52,7 +54,7 @@ func handlerMessage(req *sip.Request, tx *sip.Transaction) {
 			return
 		}
 	case "RecordInfo":
-		// 设备音视频文件列表
+		// 设备音视频文件列表 //TODO: ?缺少return
 		sipMessageRecordInfo(u, body)
 		tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
 	case "DeviceInfo":

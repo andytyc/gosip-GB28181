@@ -138,7 +138,7 @@ func apiDelUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	_apiResponse(w, statusSucc, "")
 }
 
-// 注册通道设备
+// 注册通道设备 | 收到新目录/设备注册
 func apiNewDevices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	if id == "" {
