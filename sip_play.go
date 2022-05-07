@@ -103,7 +103,7 @@ func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, 
 		dbClient.Insert(streamTB, DeviceStream{
 			T:          data.T,
 			SSRC:       ssrc2stream(data.SSRC),
-			DeviceID:   data.DeviceID,
+			DeviceID:   data.DeviceID, // 请求流的此设备ID
 			UserID:     data.UserID,
 			StreamType: streamTypePush, //  pull 媒体服务器主动拉流，push 监控设备主动推流
 			Status:     -1,
@@ -119,14 +119,14 @@ func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, 
 			Protocol: protocal,
 		},
 	}
-	video.AddAttribute("recvonly")
+	video.AddAttribute("recvonly") // a=recvonly\r\n
 	if data.T == 0 {
-		video.AddAttribute("setup", "passive")
-		video.AddAttribute("connection", "new")
+		video.AddAttribute("setup", "passive")  // a=setup:passive\r\n
+		video.AddAttribute("connection", "new") // a=connection:new\r\n
 	}
-	video.AddAttribute("rtpmap", "96", "PS/90000")
-	video.AddAttribute("rtpmap", "98", "H264/90000")
-	video.AddAttribute("rtpmap", "97", "MPEG4/90000")
+	video.AddAttribute("rtpmap", "96", "PS/90000")    // a=rtpmap:96 PS/90000\r\n
+	video.AddAttribute("rtpmap", "98", "H264/90000")  // a=rtpmap:98 H264/90000\r\n
+	video.AddAttribute("rtpmap", "97", "MPEG4/90000") // a=rtpmap:97 MPEG4/90000\r\n
 
 	// defining message
 	m := &sdp.Message{
@@ -134,7 +134,7 @@ func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, 
 			Username: _serverDevices.DeviceID, // 媒体服务器id
 			Address:  _sysinfo.mediaServerRtpIP.String(),
 		},
-		Name: name,
+		Name: name, // 直播流:s=Play\r\n | 历史流:s=Playback\r\n
 		Connection: sdp.ConnectionData{
 			IP:  _sysinfo.mediaServerRtpIP,
 			TTL: 0,
@@ -166,20 +166,20 @@ func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, 
 	req.SetDestination(user.source)
 	req.AppendHeader(&sip.GenericHeader{HeaderName: "Subject", Contents: fmt.Sprintf("%s:%s,%s:%s", device.DeviceID, data.SSRC, _serverDevices.DeviceID, data.SSRC)})
 	req.SetRecipient(device.addr.URI)
-	tx, err := srv.Request(req)
+	tx, err := srv.Request(req) // 发起INVITE
 	if err != nil {
 		logrus.Warningln("sipPlayPush fail.id:", device.DeviceID, "err:", err)
 		return data, err
 	}
 	// response
-	response, err := sipResponse(tx)
+	response, err := sipResponse(tx) // 收到回复(忽略100,101)
 	if err != nil {
 		logrus.Warningln("sipPlayPush response fail.id:", device.DeviceID, "err:", err)
 		return data, err
 	}
 	data.Resp = response
 	// ACK
-	tx.Request(sip.NewRequestFromResponse(sip.ACK, response))
+	tx.Request(sip.NewRequestFromResponse(sip.ACK, response)) // 发起ACK
 	data.SSRC = ssrc2stream(data.SSRC)
 	data.streamType = streamTypePush
 	from, _ := response.From()

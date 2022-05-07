@@ -119,7 +119,11 @@ func (tx *Transaction) Close() {
 
 // GetResponse 读取了对方的回复消息,从队列中读取,触发一次激活
 //
-// 注意: 假如对方没有回复消息(或者很久一直没回复,回复很慢超时),那么阻塞等待超时时间为20s
+// 注意:
+//
+// 1. 假如对方没有回复消息(或者很久一直没回复,回复很慢超时),那么阻塞等待超时时间为20s
+//
+// 2. 假如返回的是100,101, 则会 "忽略跳过" 继续等待下一个回复
 func (tx *Transaction) GetResponse() *Response {
 	for {
 		res := <-tx.resp
@@ -129,7 +133,7 @@ func (tx *Transaction) GetResponse() *Response {
 		tx.active <- 2
 		logrus.Traceln("response tx", tx.key, time.Now().Format("2006-01-02 15:04:05"))
 		if res.StatusCode() == http.StatusContinue || res.statusCode == http.StatusSwitchingProtocols {
-			// Trying(100) and Dialog Establishement(101: 对话建立) 等待下一个返回
+			// Trying(100) and Dialog Establishement(101: 对话建立) | 跳过,等待下一个返回
 			continue
 		}
 		return res

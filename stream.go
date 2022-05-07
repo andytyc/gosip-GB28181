@@ -12,28 +12,26 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// streamTB 表{streamTB: streams}, 管理对当前请求流(直播流/历史流)的管理(包含:相关的所有信息,用于管理生命周期,如:关闭推流)
 var streamTB = "streams"
 
-// DeviceStream 表{streamTB: streams}的表结构
+// DeviceStream 表{streamTB: streams}, 管理对当前请求流(直播流/历史流)的管理(包含:相关的所有信息,用于管理生命周期,如:关闭推流)
 type DeviceStream struct {
-	// T 流类型 0  直播 1 历史
-	T int
+	T int // T 流类型 0  直播 1 历史
 
-	SSRC       string
-	DeviceID   string
-	UserID     string
-	StreamType string // pull 媒体服务器主动拉流，push 监控设备主动推流
+	SSRC       string // SSRC SSRC编号, 注意: 还未转换为stream的16进制数字字符串
+	DeviceID   string // DeviceID 设备ID
+	UserID     string // UserID 用户设备ID (设备的所属用户)
+	StreamType string // StreamType 推流类型, pull 媒体服务器主动拉流，push 监控设备主动推流
 
-	// Status 0正常 1关闭 -1 尚未开始
-	Status int
+	Status int // Status 当前此流的状态 0正常 1关闭 -1 尚未开始
 
-	Ftag   map[string]string // header from params
-	Ttag   map[string]string // header to params
-	CallID string            // header callid
+	Ftag   map[string]string // From 请求头(header from params)
+	Ttag   map[string]string // To 请求头(header to params)
+	CallID string            // CallID 请求头(header callid) 会话ID(代表一个请求流的CallID, 如: 关闭时也要关闭(bye)的是这个CallID流)
 
-	Time string
-	// Stop 是否停止推/拉流
-	Stop bool
+	Time string // Time 创建时间(注意: 新建此会话时也会新生成一个新的SSRC编号), 在进行INVITE发起前生成的时间戳
+	Stop bool   // Stop 是否停止推/拉流
 }
 
 type playList struct {
@@ -42,7 +40,7 @@ type playList struct {
 	// key=ssrc value=PlayParams 播放对应的PlayParams 用来发送bye获取tag，callid等数据
 	ssrcResponse *sync.Map
 
-	// devicesSucc 对设备ID唯一映射,防止重复直播
+	// devicesSucc 对设备ID唯一映射,防止重复直播 - 注意:仅仅直播流是公用直播流
 	//
 	// key=deviceid value={ssrc,path} 当前设备直播信息，防止重复直播
 	devicesSucc *sync.Map
@@ -67,6 +65,8 @@ func getSSRC(t int) string {
 		if _playList.ssrc > 9000 && !r {
 			// 第一轮达到9000后,再重复一次看看是否有停止的流(因为调用此函数获取ssrc时,此时的_playList.ssrc几乎都不会在0最开始地方(而是上次获取的地方))
 			// 否则,已经重复过一次了(确保9000以内都没有可用的情况下),那么继续在9000基础上往上增加++,知道获取到可用的ssrc
+			//
+			// 对于ssrc停掉的,有没有补偿机制,将这些停掉的ssrc编号回收呢？--有,见下边的定时任务:checkStream
 			_playList.ssrc = 0
 			r = true
 		}
