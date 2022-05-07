@@ -9,14 +9,23 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-// Request 请求实体
+/*
+实现了SIP消息Message接口 的请求
+
+-----------------
+
+Request
+处理请求概念的消息
+******************************************************************/
+
+// Request 请求消息 | 实现了SIP消息Message接口
 type Request struct {
 	message   // 包含message结构,注意: 有重复方法的则是Request的(重写了),否则是message的方法
 	method    RequestMethod
 	recipient *URI
 }
 
-// NewRequest 创建一个请求对象 | 对方请求 或 我方请求
+// NewRequest 创建一个请求对象 | 实现了SIP消息Message接口 | 对方请求 或 我方请求
 func NewRequest(
 	messID MessageID,
 	method RequestMethod,
@@ -43,7 +52,7 @@ func NewRequest(
 	return req
 }
 
-// NewRequestFromResponse NewRequestFromResponse
+// NewRequestFromResponse 创建一个请求对象 | 实现了SIP消息Message接口 | 根据对方响应进行请求
 func NewRequestFromResponse(method RequestMethod, inviteResponse *Response) *Request {
 	contact, _ := inviteResponse.Contact()
 	ackRequest := NewRequest(

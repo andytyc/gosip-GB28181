@@ -13,7 +13,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Packet 数据包/数据报文, 简称: 数据报文
+/*
+连接对象的双方进行消息交互传输 []byte <=> []byte
+
+-----------------
+
+Packet
+对数据报文(字节)进行读对象封装为一个读取器(包裹了数据报文形成一个读取器，方便按需读取)
+
+Connection
+实现了Connection接口 | 实现了Connection接口 -> 保存连接对象,管理连接(关闭),接收(Write)/发送(Read)数据报文
+******************************************************************/
+
+// Packet 数据包/数据报文, 简称: 数据报文 | 对数据报文(字节)进行读对象封装为一个读取器(包裹了数据报文形成一个读取器，方便按需读取)
 type Packet struct {
 	// reader 读对象
 	reader *bufio.Reader
@@ -23,7 +35,9 @@ type Packet struct {
 	bodylength int
 }
 
-// newPacket 新建数据报文
+// newPacket 新建数据包/数据报文
+//
+// 对数据报文(字节)进行读对象封装为一个读取器(包裹了数据报文形成一个读取器，方便按需读取)
 //
 // data: 接收的数据, raddr: 远端地址
 func newPacket(data []byte, raddr net.Addr) Packet {
@@ -47,10 +61,12 @@ func (p *Packet) nextLine() (string, error) {
 	return str, err
 }
 
+// bodyLength 获取body数据长度
 func (p *Packet) bodyLength() int {
 	return p.bodylength
 }
 
+// getBody 读取body数据
 func (p *Packet) getBody() (string, error) {
 	if p.bodyLength() < 1 {
 		return "", nil
@@ -70,6 +86,8 @@ func (p *Packet) getBody() (string, error) {
 }
 
 // Connection Wrapper around net.Conn.
+//
+// 实现了Connection接口 实现了Connection接口 -> 保存连接对象,管理连接(关闭),接收(Write)/发送(Read)数据报文
 type Connection interface {
 	net.Conn
 	Network() string
@@ -78,7 +96,7 @@ type Connection interface {
 	WriteTo(buf []byte, raddr net.Addr) (num int, err error)
 }
 
-// Connection 连接的实现
+// connection 实现了Connection接口
 type connection struct {
 	// baseConn 开启监听后的连接对象,作为本connection结构体的基础连接对象
 	baseConn net.Conn
@@ -90,6 +108,7 @@ type connection struct {
 	logKey string
 }
 
+// newUDPConnection 实现了Connection接口 | 实现了Connection接口 -> 保存连接对象,管理连接(关闭),接收(Write)/发送(Read)数据报文
 func newUDPConnection(baseConn net.Conn) Connection {
 	conn := &connection{
 		baseConn: baseConn,

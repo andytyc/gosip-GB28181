@@ -11,6 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+/*
+解析SIP消息(字节[]byte) -> Message结构体
+
+-----------------
+
+parser
+解码器 | 解码器将 SIP消息 的原始字节转换为 Message 对象 (根据SIP协议传输格式)
+******************************************************************/
+
 // The whitespace characters recognised by the Augmented Backus-Naur Form syntax
 // that SIP uses (RFC 3261 S.25).
 const abnfWs = " \t"
@@ -21,6 +30,9 @@ const maxCseq = 2147483647
 
 // A Parser converts the raw bytes of SIP messages into core.Message objects.
 // It allows
+//
+// 解析器将 SIP 消息的原始字节转换为 core.Message 对象。
+// 它允许
 type Parser interface {
 	// Implements io.Writer. Queues the given bytes to be parsed.
 	// If the parser has terminated due to a previous fatal error, it will return n=0 and an appropriate error.
@@ -556,15 +568,22 @@ func parseRecordRouteHeader(headerName string, headerText string) (headers []Hea
 	return []Header{&routeHeader}, nil
 }
 
-// parser 解析器 根据SIP协议传输格式,将数据报文packet解析为本服务可识别的消息结构体Message
+// parser 解码器 | 解码器将 SIP 消息的原始字节转换为 Message 对象
+//
+// 根据SIP协议传输格式,将数据报文packet解析为本服务可识别的消息结构体Message
 type parser struct {
-	// out 解析完毕后等待被读取队列: 将parser解析结果Message输出
+	// out | 已经解析完毕了等待被读取队列(Message)
+	//
+	// parser对in的数据报文进行了解析, 这里将解析结果Message输出
 	out chan Message
-	// in 接收到数据报文后等待解析队列: 对parser输入(对方来的消息),将数据报文packet解析成消息体Message
+	// in | 接收到数据报文后等待解析队列(Packet)
+	//
+	// 将对方来的数据报文输入给parser, 然后parser会将数据报文packet解析成消息体Message
 	in     chan Packet
 	isStop bool
 }
 
+// newParser 新建解码器 | 解析器将 SIP 消息的原始字节转换为 Message 对象
 func newParser() *parser {
 	p := &parser{out: make(chan Message), in: make(chan Packet)}
 	go p.start()
@@ -576,7 +595,7 @@ func (p *parser) stop() {
 	p.isStop = true
 }
 
-// start 开启解析任务
+// start 开启解析任务 | 解析器将 SIP 消息的原始字节转换为 Message 对象
 func (p *parser) start() {
 	var termErr error
 	var msg Message

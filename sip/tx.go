@@ -48,7 +48,7 @@ func (txs *transacionts) rmTX(tx *Transaction) {
 /*
 ******************************************************/
 
-// Transaction 交易/合约/交互, 简称:合同
+// Transaction 交易/合约/交互, 简称:合同 | 用于数据报文的交互
 type Transaction struct {
 	// conn 连接实例对象
 	conn Connection

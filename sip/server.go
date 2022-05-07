@@ -102,6 +102,7 @@ func (s *Server) RegistHandler(method RequestMethod, handler RequestHandler) {
 	s.hmu.Unlock()
 }
 
+// handlerListen 处理监听到的消息(已经成功解析为Message的消息)
 func (s *Server) handlerListen(msgs chan Message) {
 	var msg Message
 	for {

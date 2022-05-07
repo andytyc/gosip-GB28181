@@ -6,6 +6,16 @@ import (
 	"net"
 )
 
+/*
+对 SIP消息Message 进行了基本声明和接口实现
+
+-----------------
+
+Message
+SIP消息接口 介绍了常见的 SIP 消息 RFC 3261 - 7。
+此接口, Request, Response 都是些了Message的接口
+******************************************************************/
+
 // MessageID MessageID
 type MessageID string
 
@@ -31,6 +41,8 @@ const (
 )
 
 // Message introduces common SIP message RFC 3261 - 7.
+//
+// 消息介绍了常见的 SIP 消息 RFC 3261 - 7。
 type Message interface {
 	MessageID() MessageID
 
