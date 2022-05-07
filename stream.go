@@ -51,7 +51,7 @@ type playList struct {
 	ssrc int
 }
 
-// _playList 推流内存同步映射表
+// _playList 推流内存同步映射表 (锁定: SSRC编号)
 var _playList playList
 
 // getSSRC 获取一个新的可用的ssrc编号(没有流在使用或在占用)
@@ -59,12 +59,14 @@ func getSSRC(t int) string {
 	r := false
 	for {
 		_playList.ssrc++
-		key := fmt.Sprintf("%d%s%04d", t, _sysinfo.Region[3:8], _playList.ssrc)
+		key := fmt.Sprintf("%d%s%04d", t, _sysinfo.Region[3:8], _playList.ssrc) // 1 + 5 + 4 = 10位
 		stream := DeviceStream{}
 		if err := dbClient.Get(streamTB, M{"ssrc": ssrc2stream(key), "stop": false}, &stream); err == mongo.ErrNoDocuments || stream.SSRC == "" {
 			return key
 		}
-		if _playList.ssrc > 9000 && !r { //约束上限:1~9000
+		if _playList.ssrc > 9000 && !r {
+			// 第一轮达到9000后,再重复一次看看是否有停止的流(因为调用此函数获取ssrc时,此时的_playList.ssrc几乎都不会在0最开始地方(而是上次获取的地方))
+			// 否则,已经重复过一次了(确保9000以内都没有可用的情况下),那么继续在9000基础上往上增加++,知道获取到可用的ssrc
 			_playList.ssrc = 0
 			r = true
 		}

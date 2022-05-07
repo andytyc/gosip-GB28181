@@ -13,7 +13,7 @@ import (
 const userTB = "users"     // 用户表 NVR表
 const deviceTB = "devices" // 设备表 摄像头
 
-// NVRDevices NVR设备信息
+// NVRDevices NVR设备信息(NVR表)/用户设备信息(用户表) | 表: userTB(users)
 type NVRDevices struct {
 	DBModel
 	// Name 设备名称
@@ -57,7 +57,7 @@ type NVRDevices struct {
 	source net.Addr
 }
 
-// Devices 摄像头信息
+// Devices 摄像头信息(摄像头表)/通道设备信息(设备表) | 表: deviceTB(devices)
 type Devices struct {
 	DBModel
 	// DeviceID 设备编号
@@ -76,7 +76,7 @@ type Devices struct {
 	Secrecy     int    `xml:"Secrecy" bson:"secrecy" json:"secrecy"`
 	// Status 状态  on 在线
 	Status string `xml:"Status" bson:"status" json:"status"`
-	// PDID 所属用户id
+	// PDID 所属用户id (也就是: 表:userTB(users)的deviceid值)
 	PDID string `bson:"pdid" json:"pdid"`
 	// Active 最后活跃时间
 	Active int64  `bson:"active" json:"active"`

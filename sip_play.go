@@ -37,7 +37,7 @@ type playParams struct {
 	ext int64
 }
 
-// sip 请求播放
+// sip 请求播放(实时流或历史流) | 发起INVITE建立请求流的会话
 func sipPlay(data playParams) interface{} {
 	device := Devices{}
 	if err := dbClient.Get(deviceTB, M{"deviceid": data.DeviceID}, &device); err != nil {
@@ -46,7 +46,7 @@ func sipPlay(data playParams) interface{} {
 		}
 		return err
 	}
-	if time.Now().Unix()-device.Active > 30*60 {
+	if time.Now().Unix()-device.Active > 30*60 { // 30分钟判断离线
 		return "监控设备已离线"
 	}
 	userT := NVRDevices{}
@@ -74,7 +74,7 @@ func sipPlay(data playParams) interface{} {
 		"ws-flv":   fmt.Sprintf("%s/rtp/%s.flv", config.Media.WS, data.SSRC),
 	}
 	data.UserID = user.DeviceID
-	data.ext = time.Now().Unix() + 2*60 // 2分钟等待时间
+	data.ext = time.Now().Unix() + 2*60 // 2分钟等待时间, 即: 上边sipPlayPush成功,说明已成功建立会话,接下来就是等待对方推流,就是这个等待的时间
 	_playList.ssrcResponse.Store(data.SSRC, data)
 	if data.T == 0 {
 		_playList.devicesSucc.Store(device.DeviceID, succ)
@@ -84,6 +84,7 @@ func sipPlay(data playParams) interface{} {
 
 var ssrcLock *sync.Mutex
 
+// sipPlayPush 发起INVITE建立请求流的会话 | INVITE (Play,Playback)
 func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, error) {
 	var (
 		s sdp.Session

@@ -123,9 +123,9 @@ func loadSYSInfo() {
 	_sysinfo.mediaServerRtpPort, _ = strconv.Atoi(url.Port())
 }
 
-// zlm接收到的ssrc为16进制。发起请求的ssrc为10进制
+// ssrc2stream 通过组装的ssrc数字字符串转换为16进制的数字字符串 | zlm接收到的ssrc为16进制。发起请求的ssrc为10进制
 func ssrc2stream(ssrc string) string {
-	if ssrc[0:1] == "0" {
+	if ssrc[0:1] == "0" { // 直播流时会是0开头
 		ssrc = ssrc[1:]
 	}
 	num, _ := strconv.Atoi(ssrc)

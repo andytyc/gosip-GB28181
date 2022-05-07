@@ -1,5 +1,7 @@
 # 架构
 
+- 数据库: mongodb
+
 ```bash
 .
 ├── Dockerfile

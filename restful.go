@@ -138,7 +138,7 @@ func apiDelUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	_apiResponse(w, statusSucc, "")
 }
 
-// 注册通道设备 | 收到新目录/设备注册
+// 注册通道设备 | 给用户设备(id)的下级注册通道设备
 func apiNewDevices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	if id == "" {
@@ -192,12 +192,13 @@ func apiDelDevices(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	_apiResponse(w, statusSucc, "")
 }
 
-// 直播 同一通道设备公用一个直播流
+// 直播 同一通道设备公用一个直播流 | 也就是:视音频直播
 func apiPlay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	deviceid := ps.ByName("id")
 	d := playParams{S: time.Time{}, E: time.Time{}, DeviceID: deviceid}
 	params := r.URL.Query()
 	if params.Get("t") == "1" {
+		// 视音频回放
 		d.T = 1
 		s, _ := strconv.ParseInt(params.Get("start"), 10, 64)
 		if s == 0 {
@@ -208,6 +209,7 @@ func apiPlay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		e, _ := strconv.ParseInt(params.Get("end"), 10, 64)
 		d.E = time.Unix(e, 0)
 	} else {
+		// 视音频直播
 		// 直播的判断当前是否存在播放
 		if succ, ok := _playList.devicesSucc.Load(deviceid); ok {
 			_apiResponse(w, statusSucc, succ)
@@ -225,7 +227,7 @@ func apiPlay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 }
 
-// 重播，每个重播请求都会生成一个新直播流
+// 重播，每个重播请求都会生成一个新直播流 | 也就是:视音频回放
 func apiReplay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	r.URL.RawQuery = r.URL.RawQuery + "&t=1"
 	apiPlay(w, r, ps)
@@ -613,17 +615,24 @@ func apiWebHooks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 func restfulAPI() {
 	router := httprouter.New()
-	router.GET("/users", apiAuthCheck(apiNewUsers, config.Secret))                // 注册新用户设备
-	router.GET("/users/:id/update", apiAuthCheck(apiUpdateUsers, config.Secret))  // 更新用户设备
-	router.GET("/users/:id/delete", apiAuthCheck(apiDelUsers, config.Secret))     // 更新用户设备
+
+	// 用户设备
+	router.GET("/users", apiAuthCheck(apiNewUsers, config.Secret))               // 注册新用户设备
+	router.GET("/users/:id/update", apiAuthCheck(apiUpdateUsers, config.Secret)) // 更新用户设备
+	router.GET("/users/:id/delete", apiAuthCheck(apiDelUsers, config.Secret))    // 删除用户设备,同时会删除所有归属的通道设备
+
+	// 通道设备
 	router.GET("/users/:id/devices", apiAuthCheck(apiNewDevices, config.Secret))  // 注册新通道设备
-	router.GET("/devices/:id/delete", apiAuthCheck(apiDelDevices, config.Secret)) // 删除
-	router.GET("/devices/:id/play", apiAuthCheck(apiPlay, config.Secret))         // 播放
-	router.GET("/devices/:id/replay", apiAuthCheck(apiReplay, config.Secret))     // 回播
-	router.GET("/play/:id/stop", apiAuthCheck(apiStopPlay, config.Secret))        // 停止播放
-	router.GET("/devices/:id/files", apiAuthCheck(apiFileList, config.Secret))    // 获取历史文件
-	router.GET("/play/:id/record", apiAuthCheck(apiRecordStart, config.Secret))   // 录制
-	router.GET("/record/:id/stop", apiAuthCheck(apiRecordStop, config.Secret))    // 停止录制
+	router.GET("/devices/:id/delete", apiAuthCheck(apiDelDevices, config.Secret)) // 删除通道设备
+
+	// 流
+	router.GET("/devices/:id/play", apiAuthCheck(apiPlay, config.Secret))       // 播放
+	router.GET("/devices/:id/replay", apiAuthCheck(apiReplay, config.Secret))   // 回播
+	router.GET("/play/:id/stop", apiAuthCheck(apiStopPlay, config.Secret))      // 停止播放
+	router.GET("/devices/:id/files", apiAuthCheck(apiFileList, config.Secret))  // 获取历史文件
+	router.GET("/play/:id/record", apiAuthCheck(apiRecordStart, config.Secret)) // 录制
+	router.GET("/record/:id/stop", apiAuthCheck(apiRecordStop, config.Secret))  // 停止录制
+
 	router.POST("/index/hook/:method", apiWebHooks)
 	logrus.Fatal(http.ListenAndServe(config.API, router))
 }
