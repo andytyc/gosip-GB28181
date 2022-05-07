@@ -99,6 +99,7 @@ func timeoutClient() *http.Client {
 		},
 	}
 }
+
 func timeoutDialer(cTimeout time.Duration,
 	rwTimeout time.Duration) func(ctx context.Context, net, addr string) (c net.Conn, err error) {
 	return func(ctx context.Context, netw, addr string) (net.Conn, error) {

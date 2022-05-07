@@ -9,6 +9,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+/*
+实现了对 "配置文件中订阅需要通知消息的地址" 进行推送通知消息
+
+-----------------
+
+Notify
+消息通知结构 | 就是有人订阅了我们的消息(需要我们主动推送) | 就是在配置里设置了的通知对象集, 我们需要向对方主动推送消息给他们
+******************************************************************/
+
+// 配置文件中的 notifyMap 的key支持的的枚举值
 const (
 	// NotifyMethodUserActive 用户活跃状态通知
 	NotifyMethodUserActive = "users.active"
@@ -20,7 +30,7 @@ const (
 	NotifyMethodRecordStop = "records.stop"
 )
 
-// Notify 消息通知结构
+// Notify 消息通知结构 | 就是有人订阅了我们的消息(需要我们主动推送) | 就是在配置里设置了的通知对象集, 我们需要向对方主动推送消息给他们
 type Notify struct {
 	Method string      `json:"method"`
 	Data   interface{} `json:"data"`
@@ -49,6 +59,7 @@ func notifyUserAcitve(id, status string) *Notify {
 		},
 	}
 }
+
 func notifyUserRegister(u NVRDevices) *Notify {
 	u.Sys = _sysinfo
 	return &Notify{
@@ -67,6 +78,7 @@ func notifyDeviceActive(d Devices) *Notify {
 		},
 	}
 }
+
 func notifyRecordStop(url string, req url.Values) *Notify {
 	d := map[string]interface{}{
 		"url": fmt.Sprintf("%s/%s", config.Media.HTTP, url),

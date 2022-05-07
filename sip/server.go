@@ -167,7 +167,7 @@ func (s *Server) handlerResponse(msg *Response) {
 	}
 }
 
-// Request Request
+// Request 发起请求 | 将req消息作为请求发送出去
 func (s *Server) Request(req *Request) (*Transaction, error) {
 	viaHop, ok := req.ViaHop()
 	if !ok {

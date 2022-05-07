@@ -132,6 +132,7 @@ func ssrc2stream(ssrc string) string {
 	return fmt.Sprintf("%X", num)
 }
 
+// sipResponse 处理tx合同的对方的回复消息
 func sipResponse(tx *sip.Transaction) (*sip.Response, error) {
 	response := tx.GetResponse()
 	if response == nil {

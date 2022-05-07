@@ -15,7 +15,7 @@ type MessageReceive struct {
 	SN      int    `xml:"SN"`
 }
 
-// handlerRegister 处理接口: Message
+// handlerRegister 处理接口句柄: Message
 func handlerMessage(req *sip.Request, tx *sip.Transaction) {
 	u, ok := parserDevicesFromReqeust(req)
 	if !ok {
@@ -39,12 +39,12 @@ func handlerMessage(req *sip.Request, tx *sip.Transaction) {
 	}
 	switch message.CmdType {
 	case "Catalog":
-		// 设备列表
+		// 目录设备列表
 		sipMessageCatalog(u, body)
 		tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
 		return
 	case "Keepalive":
-		// heardbeat
+		// heardbeat 心跳
 		if err := sipMessageKeepalive(u, body); err == nil {
 			tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
 			// 心跳后同步注册设备列表信息
@@ -64,7 +64,7 @@ func handlerMessage(req *sip.Request, tx *sip.Transaction) {
 	tx.Respond(sip.NewResponseFromRequest("", req, http.StatusBadRequest, http.StatusText(http.StatusBadRequest), ""))
 }
 
-// handlerRegister 处理接口: Register : 注册/注销
+// handlerRegister 处理接口句柄: Register : 注册/注销
 func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 	// 判断是否存在授权字段
 	if hdrs := req.GetHeaders("Authorization"); len(hdrs) > 0 {
@@ -100,8 +100,8 @@ func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 				}
 				tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
 				// 注册成功后查询设备信息，获取制作厂商等信息
-				go notify(notifyUserRegister(user))
-				go sipDeviceInfo(fromUser)
+				go notify(notifyUserRegister(user)) // 对配置中有订阅消息的进行通知推送
+				go sipDeviceInfo(fromUser)          // 请求当前DeviceID的设备/服务信息(如:制作厂商等信息)
 				return
 			}
 		}

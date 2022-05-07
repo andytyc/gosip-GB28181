@@ -126,7 +126,7 @@ func parserDevicesFromReqeust(req *sip.Request) (NVRDevices, bool) {
 	return u, true
 }
 
-// sipDeviceInfo 获取设备信息（注册设备）
+// sipDeviceInfo 获取设备信息（注册设备） | DeviceInfo
 func sipDeviceInfo(to NVRDevices) {
 	hb := sip.NewHeaderBuilder().SetTo(to.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
