@@ -97,8 +97,11 @@ type Message interface {
 	IsAck() bool
 }
 
+// message 一个SIP消息的通用实体(通用), 同样实现了SIP消息Message接口 | Request, Response 都是在message基础上进行的再次包装
 type message struct {
-	// message headers
+	// message headers SIP消息请求头/标头
+	//
+	// 有重复方法的, 则是message的(重写了), 否则是headers的方法
 	*headers
 	messID       MessageID
 	sipVersion   string

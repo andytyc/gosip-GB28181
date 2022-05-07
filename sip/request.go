@@ -20,7 +20,10 @@ Request
 
 // Request 请求消息 | 实现了SIP消息Message接口
 type Request struct {
-	message   // 包含message结构,注意: 有重复方法的则是Request的(重写了),否则是message的方法
+	// message 一个SIP消息的通用实体(通用), 同样实现了SIP消息Message接口
+	//
+	// 有重复方法的, 则是Request的(重写了), 否则是message的方法
+	message
 	method    RequestMethod
 	recipient *URI
 }

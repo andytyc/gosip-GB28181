@@ -10,11 +10,27 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+/*
+实现了处理SIP消息的SIP服务
+
+-----------------
+
+Server
+SIP服务, 本质上实现的是一个UDP通信服务, 但拆包和组包对数据报文的处理根据SIP协议进行
+
+涉及到的相关模块:
+1. Connection, 保存连接conn对象,管理连接(关闭conn),接收(Write)/发送(Read)数据报文
+2. Parse, 解码器将 SIP消息 的原始字节转换为 Message 对象 (根据SIP协议传输格式)
+3. transacionts, 合同表(txs), 同一个CallId的多个数据报文都是同一个合同tx
+4. RequestHandler, 接口句柄, 处理具体业务逻辑的接口
+******************************************************************/
+
 var (
-	bufferSize uint16 = 65535 - 20 - 8 // IPv4 max size - IPv4 Header size - UDP Header size
+	// IPv4 max size(2^16 - 1) = 65535 字节 (除以1024约等于64KB)
+	bufferSize uint16 = 65535 - 20 - 8 // IPv4 max size(2^16 - 1) - IPv4 Header size - UDP Header size
 )
 
-// RequestHandler 请求处理程序/请求处理句柄
+// RequestHandler 请求处理程序/请求处理句柄(处理具体接口的逻辑)
 type RequestHandler func(req *Request, tx *Transaction)
 
 // Server SIP服务
@@ -44,10 +60,12 @@ func NewServer() *Server {
 	return srv
 }
 
+// newTX 新建合约
 func (s *Server) newTX(key string) *Transaction {
 	return s.txs.newTX(key, s.conn)
 }
 
+// getTX 获取合约
 func (s *Server) getTX(key string) *Transaction {
 	return s.txs.getTX(key)
 }
@@ -109,10 +127,12 @@ func (s *Server) handlerListen(msgs chan Message) {
 		msg = <-msgs
 		switch msg.(type) {
 		case *Request:
+			// 处理请求消息
 			req := msg.(*Request)
 			req.SetDestination(s.udpaddr)
 			s.handlerRequest(req)
 		case *Response:
+			// 处理回复消息
 			resp := msg.(*Response)
 			resp.SetDestination(s.udpaddr)
 			s.handlerResponse(resp)
@@ -120,6 +140,7 @@ func (s *Server) handlerListen(msgs chan Message) {
 	}
 }
 
+// handlerRequest 处理请求消息
 func (s *Server) handlerRequest(msg *Request) {
 	tx := s.mustTX(getTXKey(msg))
 	logrus.Traceln("receive request from:", msg.Source(), ",method:", msg.Method(), "txKey:", tx.key, "message: \n", msg.String())
@@ -135,6 +156,7 @@ func (s *Server) handlerRequest(msg *Request) {
 	go handler(msg, tx)
 }
 
+// handlerRequest 处理回复消息
 func (s *Server) handlerResponse(msg *Response) {
 	tx := s.getTX(getTXKey(msg))
 	logrus.Traceln("receive response from:", msg.Source(), "txKey:", tx.key, "message: \n", msg.String())

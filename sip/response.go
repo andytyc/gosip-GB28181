@@ -17,14 +17,14 @@ Response
 处理回复概念的消息
 ******************************************************************/
 
-// Response 发送/回复消息 | 实现了SIP消息Message接口 | 我方主动发送消息 或 对方请求我们进行回复消息给对方
+// Response 处理回复概念的消息 | 实现了SIP消息Message接口
 type Response struct {
 	message
 	statusCode int
 	reason     string
 }
 
-// NewResponseFromRequest | 实现了SIP消息Message接口 | 根据对方请求回复给对方消息
+// NewResponseFromRequest | 根据对方请求回复消息
 func NewResponseFromRequest(
 	resID MessageID,
 	req *Request,
@@ -62,7 +62,7 @@ func NewResponseFromRequest(
 	return res
 }
 
-// NewResponse | 实现了SIP消息Message接口 | 我方主动发送消息
+// NewResponse | 回复消息
 func NewResponse(
 	messID MessageID,
 	sipVersion string,

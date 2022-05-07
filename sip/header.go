@@ -264,7 +264,7 @@ func NewAddressFromFromHeader(from *FromHeader) *Address {
 
 // Header is a single SIP header.
 //
-// Header 实现了单个 SIP 标头的接口
+// Header 实现了单个 SIP 标头的接口 | 注意同样会实现 String 接口(通用字符串接口)
 type Header interface {
 	// Name returns header name.
 	Name() string
@@ -333,6 +333,7 @@ func (hs *headers) ViaHop() (*ViaHop, bool) {
 	return hops[0], true
 }
 
+// CallID 获取CallID
 func (hs *headers) CallID() (*CallID, bool) {
 	hdrs := hs.GetHeaders("Call-ID")
 	if len(hdrs) == 0 {

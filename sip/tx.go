@@ -9,18 +9,33 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+/*
+处理 "同一个CallID" 下的多个数据报文交互，这种叫做: Transaction(合同: 处理某一个具体的事件, 比如: 请求视频流建立会话INVITE)
+
+-----------------
+transacionts
+管理不同key(也就是callid)的合同, {callid : 合同tx}
+
+Transaction
+缩写: tx/TX
+注解: key其实就是callid, 合同: 也就是"callid相同"的多个数据报文，都是一个合同交互，属于同一个合同
+******************************************************************/
+
 // activeTX 内存已激活合同映射表 key=key value=Transaction 其中的key其实就是callid
 var activeTX *transacionts
 
 /*
 ******************************************************/
 
+// transacionts 管理不同key(也就是callid)的合同, {callid : 合同tx}
+//
+// newTX key其实就是callid, 合同: 也就是"callid相同"的多个数据报文，都是一个合同交互，属于同一个合同
 type transacionts struct {
 	txs map[string]*Transaction
 	rwm *sync.RWMutex
 }
 
-// newTX key其实就是callid
+// newTX key其实就是callid, 合同: 也就是"callid相同"的多个数据报文，都是一个合同交互，属于同一个合同
 func (txs *transacionts) newTX(key string, conn Connection) *Transaction {
 	tx := NewTransaction(key, conn)
 	txs.rwm.Lock()
@@ -29,6 +44,7 @@ func (txs *transacionts) newTX(key string, conn Connection) *Transaction {
 	return tx
 }
 
+// getTX key其实就是callid, 合同: 也就是"callid相同"的多个数据报文，都是一个合同交互，属于同一个合同
 func (txs *transacionts) getTX(key string) *Transaction {
 	txs.rwm.RLock()
 	tx, ok := txs.txs[key]
@@ -39,6 +55,7 @@ func (txs *transacionts) getTX(key string) *Transaction {
 	return tx
 }
 
+// rmTX key其实就是callid, 合同: 也就是"callid相同"的多个数据报文，都是一个合同交互，属于同一个合同
 func (txs *transacionts) rmTX(tx *Transaction) {
 	txs.rwm.Lock()
 	delete(txs.txs, tx.key)
@@ -49,6 +66,8 @@ func (txs *transacionts) rmTX(tx *Transaction) {
 ******************************************************/
 
 // Transaction 交易/合约/交互, 简称:合同 | 用于数据报文的交互
+//
+// key其实就是callid, 合同: 也就是"callid相同"的多个数据报文，都是一个合同交互，属于同一个合同
 type Transaction struct {
 	// conn 连接实例对象
 	conn Connection
@@ -146,7 +165,7 @@ func (tx *Transaction) Request(req *Request) error {
 /*
 ******************************************************/
 
-// getTXKey 获取合同tx的key,也就是callid
+// getTXKey 获取消息(Message)中的callid, 也就是合同tx的key
 func getTXKey(msg Message) (key string) {
 	callid, ok := msg.CallID()
 	if ok {
