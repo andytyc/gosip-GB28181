@@ -19,7 +19,7 @@ var streamTB = "streams"
 type DeviceStream struct {
 	T int // T 流类型 0  直播 1 历史
 
-	SSRC       string // SSRC SSRC编号, 注意: 还未转换为stream的16进制数字字符串
+	SSRC       string // SSRC SSRC编号, 注意: 存储的是已经转换为stream的16进制数字字符串,ssrc2stream()
 	DeviceID   string // DeviceID 设备ID
 	UserID     string // UserID 用户设备ID (设备的所属用户)
 	StreamType string // StreamType 推流类型, pull 媒体服务器主动拉流，push 监控设备主动推流
@@ -30,7 +30,7 @@ type DeviceStream struct {
 	Ttag   map[string]string // To 请求头(header to params)
 	CallID string            // CallID 请求头(header callid) 会话ID(代表一个请求流的CallID, 如: 关闭时也要关闭(bye)的是这个CallID流)
 
-	Time string // Time 创建时间(注意: 新建此会话时也会新生成一个新的SSRC编号), 在进行INVITE发起前生成的时间戳
+	Time string // Time 创建时间(注意: 新建此会话时也会新生成一个新的SSRC编号), 在进行INVITE发起请求流动作前生成的时间戳
 	Stop bool   // Stop 是否停止推/拉流
 }
 

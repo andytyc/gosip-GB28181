@@ -11,18 +11,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// playParams 播放请求参数,用来发送bye获取tag，callid等数据 | 是_playList.ssrcResponse映射的value
+// playParams 进行INVITE请求时(Play/Playback)播放请求参数,用来发送bye获取tag，callid等数据 | 是_playList.ssrcResponse映射的value
 type playParams struct {
 	// 0  直播 1 历史
 	T int
 	// 开始结束时间，只有t=1 时有效(即:视音频回放)
 	S, E time.Time
 
-	SSRC       string
-	DeviceID   string
-	UserID     string
-	streamType string // pull 媒体服务器主动拉流，push 监控设备主动推流
+	SSRC       string // SSRC SSRC编号, 注意: 存储的是已经转换为stream的16进制数字字符串,ssrc2stream()
+	DeviceID   string // DeviceID 设备ID
+	UserID     string // UserID 用户设备ID (设备的所属用户)
+	streamType string // StreamType 推流类型, pull 媒体服务器主动拉流，push 监控设备主动推流
 
+	// Resp 是发生INVITE,收到返回200的回复消息
 	Resp *sip.Response
 
 	// stream 是否完成推流,场景:请求推流成功后,用于判断对方是否把流推过来了
@@ -31,9 +32,10 @@ type playParams struct {
 	//
 	// 2.出现stream_not_found 且 stream=true表示推流过但已关闭。释放ssrc。
 	stream bool
+
 	// ext 推流等待的过期时间,用于判断是否请求成功但推流失败
 	//
-	// 超过还未接收到推流定义为失败，重新请求推流或者关闭此ssrc
+	// 超过还未接收到推流定义为失败，重新请求推流或者关闭此ssrc | 也就是:INVITE成功建立了会话,等待对方推流的等待时间
 	ext int64
 }
 
@@ -84,7 +86,7 @@ func sipPlay(data playParams) interface{} {
 
 var ssrcLock *sync.Mutex
 
-// sipPlayPush 发起INVITE建立请求流的会话 | INVITE (Play,Playback)
+// sipPlayPush 请求播放流(直播流/历史流) | 发送INVITE请求建立推流的会话 | INVITE (Play,Playback)
 func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, error) {
 	var (
 		s sdp.Session
@@ -166,20 +168,20 @@ func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, 
 	req.SetDestination(user.source)
 	req.AppendHeader(&sip.GenericHeader{HeaderName: "Subject", Contents: fmt.Sprintf("%s:%s,%s:%s", device.DeviceID, data.SSRC, _serverDevices.DeviceID, data.SSRC)})
 	req.SetRecipient(device.addr.URI)
-	tx, err := srv.Request(req) // 发起INVITE
+	tx, err := srv.Request(req) // 发送INVITE
 	if err != nil {
 		logrus.Warningln("sipPlayPush fail.id:", device.DeviceID, "err:", err)
 		return data, err
 	}
 	// response
-	response, err := sipResponse(tx) // 收到回复(忽略100,101)
+	response, err := sipResponse(tx) // 收到200回复(其中: 忽略100,101), 获取回复的信息, 如: 请求头 From, To, CallID
 	if err != nil {
 		logrus.Warningln("sipPlayPush response fail.id:", device.DeviceID, "err:", err)
 		return data, err
 	}
 	data.Resp = response
 	// ACK
-	tx.Request(sip.NewRequestFromResponse(sip.ACK, response)) // 发起ACK
+	tx.Request(sip.NewRequestFromResponse(sip.ACK, response)) // 发送ACK
 	data.SSRC = ssrc2stream(data.SSRC)
 	data.streamType = streamTypePush
 	from, _ := response.From()
@@ -197,7 +199,7 @@ func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, 
 	return data, err
 }
 
-// sip 停止播放
+// sip 停止播放流(直播流/历史流) | 发送Bye请求停止播放 | BYE
 func sipStopPlay(ssrc string) {
 	data, ok := _playList.ssrcResponse.Load(ssrc)
 	if !ok {
