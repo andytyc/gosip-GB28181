@@ -15,6 +15,7 @@ type MessageReceive struct {
 	SN      int    `xml:"SN"`
 }
 
+// handlerRegister 处理接口: Message
 func handlerMessage(req *sip.Request, tx *sip.Transaction) {
 	u, ok := parserDevicesFromReqeust(req)
 	if !ok {
@@ -63,6 +64,7 @@ func handlerMessage(req *sip.Request, tx *sip.Transaction) {
 	tx.Respond(sip.NewResponseFromRequest("", req, http.StatusBadRequest, http.StatusText(http.StatusBadRequest), ""))
 }
 
+// handlerRegister 处理接口: Register : 注册/注销
 func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 	// 判断是否存在授权字段
 	if hdrs := req.GetHeaders("Authorization"); len(hdrs) > 0 {

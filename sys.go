@@ -70,7 +70,7 @@ func (a *ActiveDevices) Get(key string) (NVRDevices, bool) {
 	return NVRDevices{}, false
 }
 
-// _activeDevices 当前活跃设备映射表
+// _activeDevices 当前活跃设备映射表(记录注册的所有下级设备/服务用户) {DeviceID : NVRDevices(user)}
 var _activeDevices ActiveDevices
 
 // 系统运行信息

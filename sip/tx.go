@@ -163,7 +163,7 @@ func (tx *Transaction) Request(req *Request) error {
 }
 
 /*
-******************************************************/
+******************************************************************/
 
 // getTXKey 获取消息(Message)中的callid, 也就是合同tx的key
 func getTXKey(msg Message) (key string) {
