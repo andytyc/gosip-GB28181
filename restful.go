@@ -16,14 +16,27 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+/*
+实现API服务, 处理restful-api的相关接口
+
+1. auth身份认证
+2. sd
+
+-----------------
+
+******************************************************************/
+
 func apiAuthCheck(h httprouter.Handle, requiredPassword string) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Get the Basic Authentication credentials
+		// 获取基本身份验证凭据, 进行身份验证:checkSign
 		if ok, msg := checkSign(r.RequestURI, requiredPassword, r.Form); ok {
 			// Delegate request to the given handle
+			// 将请求委托给给定的句柄 - h: 具体处理的逻辑接口
 			h(w, r, ps)
 		} else {
 			// Request Basic Authentication otherwise
+			// 否则请求基本身份验证, 返回验证失败
 			_apiResponse(w, statusAuthERR, msg)
 		}
 	}

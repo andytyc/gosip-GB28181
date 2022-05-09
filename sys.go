@@ -144,8 +144,9 @@ func sipResponse(tx *sip.Transaction) (*sip.Response, error) {
 	return response, nil
 }
 
+// checkSign 对于restful-api服务, 进行基本身份验证, 从而获取基础身份凭据
 func checkSign(uri, token string, data interface{}) (ok bool, msg string) {
-	if config.MOD == MODDEBUG {
+	if config.MOD == MODDEBUG { //debug模式,不用验证
 		return true, ""
 	}
 	key := []string{}
