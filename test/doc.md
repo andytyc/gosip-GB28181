@@ -66,3 +66,11 @@
 
 ├── utils
 ```
+
+# 备注
+
+```golang
+// 当前获取目录文件设备集合 | 管理本地录像资源 | {设备ID: list} 注意: list: recordList 实体
+var _recordList *sync.Map
+
+```

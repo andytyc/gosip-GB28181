@@ -13,14 +13,14 @@ import (
 const userTB = "users"     // 用户表 NVR表
 const deviceTB = "devices" // 设备表 摄像头
 
-// NVRDevices NVR设备信息(NVR表)/用户设备信息(用户表) | 表: userTB(users)
+// NVRDevices NVR设备信息(NVR表)/用户设备信息(用户表) | 表: userTB(users) | 关联关系: userTB (1:n) deviceTB
 type NVRDevices struct {
 	DBModel
-	// Name 设备名称
+	// Name 用户设备名称
 	Name string `json:"name" bson:"name"`
-	// DeviceID 设备id
+	// DeviceID 用户设备id | 规则(20位): fmt.Sprintf("%s%06d", _sysinfo.UID, _sysinfo.UNUM+1)
 	DeviceID string `json:"deviceid" bson:"deviceid"`
-	// Region 设备域
+	// Region 用户设备域
 	Region string `json:"region" bson:"region"`
 	// Host Via 地址
 	Host string `json:"host" bson:"host"`
@@ -57,10 +57,10 @@ type NVRDevices struct {
 	source net.Addr
 }
 
-// Devices 摄像头信息(摄像头表)/通道设备信息(设备表) | 表: deviceTB(devices)
+// Devices 摄像头信息(摄像头表/监控设备表)/通道设备信息(设备表) | 表: deviceTB(devices) | 关联关系: userTB (1:n) deviceTB
 type Devices struct {
 	DBModel
-	// DeviceID 设备编号
+	// DeviceID 设备编号 | 规则(20位): fmt.Sprintf("%s%06d", _sysinfo.DID, _sysinfo.DNUM+1)
 	DeviceID string `xml:"DeviceID" bson:"deviceid" json:"deviceid"`
 	// Name 设备名称
 	Name         string `xml:"Name" bson:"name" json:"name"`
@@ -76,7 +76,7 @@ type Devices struct {
 	Secrecy     int    `xml:"Secrecy" bson:"secrecy" json:"secrecy"`
 	// Status 状态  on 在线
 	Status string `xml:"Status" bson:"status" json:"status"`
-	// PDID 所属用户id (也就是: 表:userTB(users)的deviceid值)
+	// PDID 所属用户id (也就是: 表:userTB(users)的deviceid值, 是多对一关系)
 	PDID string `bson:"pdid" json:"pdid"`
 	// Active 最后活跃时间
 	Active int64  `bson:"active" json:"active"`

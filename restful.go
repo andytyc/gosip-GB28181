@@ -19,11 +19,10 @@ import (
 /*
 实现API服务, 处理restful-api的相关接口
 
-1. auth身份认证
-2. sd
-
 -----------------
 
+1. auth身份认证
+2. 各接口处理
 ******************************************************************/
 
 func apiAuthCheck(h httprouter.Handle, requiredPassword string) httprouter.Handle {
@@ -60,7 +59,10 @@ func _apiResponse(w http.ResponseWriter, code string, data interface{}) {
 	}
 }
 
-// 注册NVR用户设备
+/*
+******************************************************************/
+
+// 注册新用户设备/注册NVR用户设备
 func apiNewUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	pwd := r.URL.Query().Get("pwd")
 	if pwd == "" {
@@ -89,7 +91,7 @@ func apiNewUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	_apiResponse(w, statusSucc, user)
 }
 
-// 更新NVR用户设备
+// 更新用户设备/更新NVR用户设备
 func apiUpdateUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	if id == "" {
@@ -129,7 +131,7 @@ func apiUpdateUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	_apiResponse(w, statusSucc, user)
 }
 
-// 删除NVR用户设备，同时会删除所有归属的通道设备
+// 删除用户设备/删除NVR用户设备，同时会删除所有归属的通道设备
 func apiDelUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	if id == "" {
@@ -151,7 +153,7 @@ func apiDelUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	_apiResponse(w, statusSucc, "")
 }
 
-// 注册通道设备 | 给用户设备(id)的下级注册通道设备
+// 注册通道设备 | 注意: 绑定所属哪个用户设备
 func apiNewDevices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	if id == "" {
@@ -223,13 +225,14 @@ func apiPlay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		d.E = time.Unix(e, 0)
 	} else {
 		// 视音频直播
-		// 直播的判断当前是否存在播放
+		//
+		// 直播的判断当前是否存在播放 (同一通道设备公用一个直播流)
 		if succ, ok := _playList.devicesSucc.Load(deviceid); ok {
 			_apiResponse(w, statusSucc, succ)
 			return
 		}
 	}
-	res := sipPlay(d)
+	res := sipPlay(d) // SIP服务发起流请求会话
 	switch res.(type) {
 	case error, string:
 		_apiResponse(w, statusParamsERR, res)
@@ -246,7 +249,7 @@ func apiReplay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	apiPlay(w, r, ps)
 }
 
-// 停止播放（直播/重播）
+// 停止播放（停止直播/重播）
 func apiStopPlay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	if _, ok := _playList.ssrcResponse.Load(id); !ok {
@@ -276,12 +279,12 @@ func apiFileList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 	params := r.URL.Query()
-	start, _ := strconv.ParseInt(params.Get("start"), 10, 64)
+	start, _ := strconv.ParseInt(params.Get("start"), 10, 64) // 请求回放的开始时间
 	if start == 0 {
 		_apiResponse(w, statusParamsERR, "开始时间错误")
 		return
 	}
-	end, _ := strconv.ParseInt(params.Get("end"), 10, 64)
+	end, _ := strconv.ParseInt(params.Get("end"), 10, 64) // 请求回放的结束时间
 	if end == 0 {
 		_apiResponse(w, statusParamsERR, "结束时间错误")
 		return
@@ -629,7 +632,7 @@ func apiWebHooks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func restfulAPI() {
 	router := httprouter.New()
 
-	// 用户设备
+	// 用户设备 (1:n -> 包含通道设备)
 	router.GET("/users", apiAuthCheck(apiNewUsers, config.Secret))               // 注册新用户设备
 	router.GET("/users/:id/update", apiAuthCheck(apiUpdateUsers, config.Secret)) // 更新用户设备
 	router.GET("/users/:id/delete", apiAuthCheck(apiDelUsers, config.Secret))    // 删除用户设备,同时会删除所有归属的通道设备
@@ -638,9 +641,10 @@ func restfulAPI() {
 	router.GET("/users/:id/devices", apiAuthCheck(apiNewDevices, config.Secret))  // 注册新通道设备
 	router.GET("/devices/:id/delete", apiAuthCheck(apiDelDevices, config.Secret)) // 删除通道设备
 
-	// 流
-	router.GET("/devices/:id/play", apiAuthCheck(apiPlay, config.Secret))       // 播放
-	router.GET("/devices/:id/replay", apiAuthCheck(apiReplay, config.Secret))   // 回播
+	// 流:Play
+	router.GET("/devices/:id/play", apiAuthCheck(apiPlay, config.Secret))     // 播放
+	router.GET("/devices/:id/replay", apiAuthCheck(apiReplay, config.Secret)) // 回播
+
 	router.GET("/play/:id/stop", apiAuthCheck(apiStopPlay, config.Secret))      // 停止播放
 	router.GET("/devices/:id/files", apiAuthCheck(apiFileList, config.Secret))  // 获取历史文件
 	router.GET("/play/:id/record", apiAuthCheck(apiRecordStart, config.Secret)) // 录制

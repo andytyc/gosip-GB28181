@@ -11,6 +11,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+/*
+SIP服务: 进行请求流指令Play
+
+-----------------
+1. 请求流
+2. 停止流
+******************************************************************/
+
 // playParams 进行INVITE请求时(Play/Playback)播放请求参数,用来发送bye获取tag，callid等数据 | 是_playList.ssrcResponse映射的value
 type playParams struct {
 	// 0  直播 1 历史
@@ -39,7 +47,7 @@ type playParams struct {
 	ext int64
 }
 
-// sip 请求播放(实时流或历史流) | 发起INVITE建立请求流的会话
+// 请求播放(实时流或历史流) | 发起INVITE建立请求流的会话
 func sipPlay(data playParams) interface{} {
 	device := Devices{}
 	if err := dbClient.Get(deviceTB, M{"deviceid": data.DeviceID}, &device); err != nil {
@@ -86,7 +94,7 @@ func sipPlay(data playParams) interface{} {
 
 var ssrcLock *sync.Mutex
 
-// sipPlayPush 请求播放流(直播流/历史流) | 发送INVITE请求建立推流的会话 | INVITE (Play,Playback)
+// sipPlayPush sip服务: 请求播放流(直播流/历史流) | 发送INVITE请求建立推流的会话 | INVITE (Play,Playback)
 func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, error) {
 	var (
 		s sdp.Session
@@ -199,7 +207,7 @@ func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, 
 	return data, err
 }
 
-// sip 停止播放流(直播流/历史流) | 发送Bye请求停止播放 | BYE
+// sipStopPlay sip服务: 停止播放流(直播流/历史流) | 发送Bye请求停止播放 | BYE
 func sipStopPlay(ssrc string) {
 	data, ok := _playList.ssrcResponse.Load(ssrc)
 	if !ok {
