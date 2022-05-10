@@ -356,7 +356,7 @@ type RecordFiles struct {
 }
 
 type apiRecordItem struct {
-	resp   chan string
+	resp   chan string // zlm录制完毕后，发送通知
 	clos   chan bool
 	params url.Values // 调用zlm的参数, 用于: 开启录制
 	req    url.Values
@@ -480,10 +480,15 @@ func apiRecordStop(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	}
 }
 
+/******************************************************************
+接收zlm对本restful服务的请求, 处理zlm请求(MediaServer: 流媒体服务)
+******************************************************************/
+
+// mediaRequest 请求体
 type mediaRequest struct {
 	APP    string `json:"app"`
 	Params string `json:"params"`
-	Stream string `json:"stream"`
+	Stream string `json:"stream"` // 设备ID
 	Schema string `json:"schema"`
 	URL    string `json:"url"`
 	Regist bool   `json:"regist"`
@@ -527,7 +532,7 @@ func apiWebHooks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	case "on_http_access":
 		_mediaResponse(w, map[string]interface{}{
 			"code":   0,
-			"second": 86400,
+			"second": 86400, // 1天:86400秒
 		})
 	case "on_play":
 		//视频播放触发鉴权
@@ -560,7 +565,7 @@ func apiWebHooks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			"msg":        "success",
 		})
 	case "on_stream_none_reader":
-		// 无人阅读通知
+		// 无人阅读通知 {流无法访问}
 		sipStopPlay(req.Stream)
 		_mediaResponse(w, map[string]interface{}{
 			"code":  0,
@@ -568,6 +573,7 @@ func apiWebHooks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		})
 		logrus.Infoln("closeStream on_stream_none_reader", req.Stream)
 	case "on_stream_not_found":
+		// 流没找到 {没有流推给zlm}
 		ssrc := req.Stream
 		if d, ok := _playList.ssrcResponse.Load(ssrc); ok {
 			params := d.(playParams)
@@ -594,7 +600,7 @@ func apiWebHooks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			"msg":  "success",
 		})
 	case "on_record_mp4":
-		// // mp4 录制完成
+		// mp4 录制完成 {录制任务完毕}
 		if item, ok := _apiRecordList.Get(req.Stream); ok {
 			_apiRecordList.Stop(req.Stream)
 			item.down(req.URL)
@@ -660,7 +666,7 @@ func restfulAPI() {
 	router.GET("/play/:id/record", apiAuthCheck(apiRecordStart, config.Secret)) // 录制
 	router.GET("/record/:id/stop", apiAuthCheck(apiRecordStop, config.Secret))  // 停止录制
 
-	// zlm: MediaServer
+	// 处理来自zlm的任务命令交互请求(如: 任务处理进度): MediaServer
 	router.POST("/index/hook/:method", apiWebHooks)
 
 	logrus.Fatal(http.ListenAndServe(config.API, router))

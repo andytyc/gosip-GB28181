@@ -7,7 +7,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// MessageNotify 心跳包xml结构
+/******************************************************************
+对方发送SIP消息给本SIP服务 | 对方SIP -> 本SIP
+******************************************************************/
+
+// MessageNotify 心跳 | 心跳包xml结构
 type MessageNotify struct {
 	CmdType  string `xml:"CmdType"`
 	SN       int    `xml:"SN"`
@@ -16,6 +20,7 @@ type MessageNotify struct {
 	Info     string `xml:"Info"`
 }
 
+// sipMessageKeepalive 数据包: Message.Keepalive | 心跳来的body是用户设备信息(如：该用户设备的状态)
 func sipMessageKeepalive(u NVRDevices, body string) error {
 	message := &MessageNotify{}
 	if err := utils.XMLDecode([]byte(body), message); err != nil {
@@ -30,6 +35,6 @@ func sipMessageKeepalive(u NVRDevices, body string) error {
 		update["active"] = -1
 		_activeDevices.Delete(u.DeviceID)
 	}
-	go notify(notifyUserAcitve(u.DeviceID, message.Status))
+	go notify(notifyUserAcitve(u.DeviceID, message.Status)) // 通知事件
 	return dbClient.Update(userTB, M{"deviceid": u.DeviceID}, M{"$set": update})
 }
