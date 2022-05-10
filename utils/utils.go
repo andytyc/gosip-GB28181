@@ -20,6 +20,10 @@ import (
 	"golang.org/x/net/html/charset"
 )
 
+/******************************************************************
+错误
+******************************************************************/
+
 // Error Error
 type Error struct {
 	err    error
@@ -42,6 +46,10 @@ func NewError(err error, params ...interface{}) error {
 	return &Error{err, params}
 }
 
+/******************************************************************
+Json编/解码器
+******************************************************************/
+
 // JSONEncode JSONEncode
 func JSONEncode(data interface{}) []byte {
 	d, err := json.Marshal(data)
@@ -56,6 +64,10 @@ func JSONDecode(data []byte, obj interface{}) error {
 	return json.Unmarshal(data, obj)
 }
 
+/******************************************************************
+随机策略
+******************************************************************/
+
 const (
 	letterBytes = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
@@ -64,7 +76,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-// RandString https://github.com/kpbird/golang_random_string
+// RandString 随机字符串 https://github.com/kpbird/golang_random_string
 func RandString(n int) string {
 	output := make([]byte, n)
 	// We will take n bytes, one byte for each character of output.
@@ -87,6 +99,10 @@ func RandString(n int) string {
 
 	return string(output)
 }
+
+/******************************************************************
+http交互
+******************************************************************/
 
 func timeoutClient() *http.Client {
 	connectTimeout := time.Duration(20 * time.Second)
@@ -153,14 +169,18 @@ func GetRequest(url string) ([]byte, error) {
 	return respbody, nil
 }
 
-// GetMD5 GetMD5
+/******************************************************************
+其他
+******************************************************************/
+
+// GetMD5 同一个str生成同一个md5 场景: 用于后续md5校验
 func GetMD5(str string) string {
 	h := md5.New()
 	io.WriteString(h, str)
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-// XMLDecode XMLDecode
+// XMLDecode XML解码
 func XMLDecode(data []byte, v interface{}) error {
 	decoder := xml.NewDecoder(bytes.NewReader([]byte(data)))
 	decoder.CharsetReader = charset.NewReaderLabel
@@ -189,7 +209,7 @@ func sec2str(layout string, sec int64) string {
 	return nt
 }
 
-// ResolveSelfIP 解决自身网络IP
+// ResolveSelfIP 解析/解决自身网络IP
 func ResolveSelfIP() (net.IP, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {

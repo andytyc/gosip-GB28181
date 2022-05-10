@@ -18,11 +18,14 @@ import (
 SIP服务: 处理录像(视音频回放)/录像文件
 
 -----------------
-1. 请求流
-2. 停止流
+1. 查询录像文件列表
 ******************************************************************/
 
-// sipRecordList sip服务: 查询录像文件列表
+/******************************************************************
+本SIP服务发送SIP消息给对方 | 本SIP -> 对方SIP
+******************************************************************/
+
+// sipRecordList 查询录像文件列表.发起请求 | Message.RecordInfo
 func sipRecordList(to NVRDevices, start, end int64) error {
 	hb := sip.NewHeaderBuilder().SetTo(to.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
@@ -79,12 +82,13 @@ type recordList struct {
 // {设备ID: list} 注意: list: recordList 实体
 var _recordList *sync.Map
 
-/* 对方发送SIP消息给本SIP服务
+/******************************************************************
+对方发送SIP消息给本SIP服务 | 对方SIP -> 本SIP
 ******************************************************************/
 
-// sipMessageRecordInfo 接收对方来的录像文件列表 | 对方通过 Message.RecordInfo SIP消息发送给本SIP服务，body就是录像文件列表
+// sipMessageRecordInfo 查询录像文件列表.对方回复 | Message.RecordInfo
 //
-// 外SIP服务 --> 本SIP服务 {Message.RecordInfo}
+// 接收对方来的录像文件列表 | 对方通过 Message.RecordInfo SIP消息发送给本SIP服务，body就是录像文件列表
 func sipMessageRecordInfo(u NVRDevices, body string) error {
 	message := &MessageRecordInfoResponse{}
 	if err := utils.XMLDecode([]byte(body), message); err != nil {

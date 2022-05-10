@@ -8,6 +8,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+/*
+向zlm发送请求, 对接zlm(MediaServer: 流媒体服务)
+******************************************************************/
+
 // rtpInfo 查询流在zlm上的信息返回结构
 type rtpInfo struct {
 	Code  int  `json:"code"`

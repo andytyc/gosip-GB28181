@@ -94,6 +94,10 @@ func sipPlay(data playParams) interface{} {
 
 var ssrcLock *sync.Mutex
 
+/******************************************************************
+本SIP服务发送SIP消息给对方 | 本SIP -> 对方SIP
+******************************************************************/
+
 // sipPlayPush sip服务: 请求播放流(直播流/历史流) | 发送INVITE请求建立推流的会话 | INVITE (Play,Playback)
 func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, error) {
 	var (

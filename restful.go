@@ -25,6 +25,7 @@ import (
 2. 各接口处理
 ******************************************************************/
 
+// apiAuthCheck 用于API接口的统一认证入口
 func apiAuthCheck(h httprouter.Handle, requiredPassword string) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Get the Basic Authentication credentials
@@ -262,7 +263,7 @@ func apiStopPlay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	return
 }
 
-// 获取录像文件列表
+// 获取录像文件列表 | 使用场景: 正规流程中,当请求视频回放时,需要先查询设备存储的录像文件的时间范围，是否支持请求的时间范围
 func apiFileList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	device := Devices{}
@@ -301,6 +302,9 @@ func apiFileList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 	for {
 		if _, ok := _recordList.Load(device.DeviceID); ok {
+			// 当前有对该设备的录像文件列表查询请求, 稍后再试: 排队
+			//
+			//TODO: 这里和下边的Store有同步问题? 原因:加入请求了4次此接口,1个在处理,3个等待排队,而第一个释放时,这3个有可能同时允许请求
 			time.Sleep(1 * time.Second)
 		} else {
 			break
@@ -312,8 +316,11 @@ func apiFileList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	user.addr = &sip.Address{URI: deviceURI}
 	resp := make(chan interface{}, 1)
 	defer close(resp)
+
+	// 创建一个请求(等待回复), 记录在: _recordList //TODO: 看上边的for{}等待排队,这里逻辑有同步问题,有可能出现:多个同时进行Store操作,而Message回复也在Store更新内容
 	_recordList.Store(user.DeviceID, recordList{deviceid: user.DeviceID, resp: resp, data: [][]int64{}, l: &sync.Mutex{}, s: start, e: end})
 	defer _recordList.Delete(user.DeviceID)
+
 	err := sipRecordList(user, start, end)
 	if err != nil {
 		_apiResponse(w, statusParamsERR, "监控设备返回错误"+err.Error())
@@ -336,26 +343,27 @@ func apiFileList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // _apiRecordList 记录流录制 key:ssrc  value=channel
 var _apiRecordList apiRecordList
 
-// RecordFiles files:录制文件表结构
+// RecordFiles 录制文件表 | 表: fileTB{files}
 type RecordFiles struct {
-	Start  int64  `json:"start" bson:"start"`
-	End    int64  `json:"end" bson:"end"`
-	Stream string `json:"stream" bson:"stream"`
-	ID     string `json:"id" bson:"id"`
-	Status int    `json:"status" bson:"status"`
-	File   string `json:"file" bson:"file"`
-	Clear  bool   `json:"clear" bson:"clear"`
-	params url.Values
+	Start  int64      `json:"start" bson:"start"` // 调用zlm开始录制命令成功,记录:开始生活
+	End    int64      `json:"end" bson:"end"`
+	Stream string     `json:"stream" bson:"stream"` // 设备ID
+	ID     string     `json:"id" bson:"id"`         // 录制文件任务id
+	Status int        `json:"status" bson:"status"`
+	File   string     `json:"file" bson:"file"`
+	Clear  bool       `json:"clear" bson:"clear"`
+	params url.Values // 调用zlm的参数
 }
 
 type apiRecordItem struct {
 	resp   chan string
 	clos   chan bool
-	params url.Values
+	params url.Values // 调用zlm的参数, 用于: 开启录制
 	req    url.Values
-	id     string
+	id     string // 录制文件任务id, 注意: 不是设备ID, 是随机生成的一个录制文件任务id
 }
 
+// start 开始录制
 func (ri *apiRecordItem) start() (string, interface{}) {
 	err := zlmStartRecord(ri.params)
 	if err != nil {
@@ -370,7 +378,7 @@ func (ri *apiRecordItem) start() (string, interface{}) {
 				url := <-ri.resp
 				notify(notifyRecordStop(url, ri.req))
 			case <-ri.clos:
-				// 调用stop接口
+				// 调用stop接口(ps: 外部有人主动停止了录制)
 			}
 		}()
 	}
@@ -384,8 +392,9 @@ func (ri *apiRecordItem) start() (string, interface{}) {
 	if err != nil {
 		return statusDBERR, err
 	}
-	return statusSucc, ri.id
+	return statusSucc, ri.id // 返回录制任务ID
 }
+
 func (ri *apiRecordItem) stop() (string, interface{}) {
 	err := zlmStopRecord(ri.params)
 	if err != nil {
@@ -417,20 +426,21 @@ func (rl *apiRecordList) Start(id string, values url.Values) *apiRecordItem {
 	rl.l.Unlock()
 	return item
 }
+
 func (rl *apiRecordList) Stop(id string) {
 	rl.l.Lock()
 	delete(rl.items, id)
 	rl.l.Unlock()
 }
 
-// 视频流录制 默认保存为mp4文件，录制最多录制10分钟，10分钟后自动停止，一个流只能存在一个录制
+// apiRecordStart 视频流录制 | 默认保存为mp4文件，录制最多录制10分钟，10分钟后自动停止，一个流只能存在一个录制
 func apiRecordStart(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
-	if _, ok := _playList.ssrcResponse.Load(id); !ok {
+	if _, ok := _playList.ssrcResponse.Load(id); !ok { // 前提条件: 需要有直播视频流存在
 		_apiResponse(w, statusParamsERR, "视频流不存在")
 		return
 	}
-	if _, ok := _apiRecordList.Get(id); ok {
+	if _, ok := _apiRecordList.Get(id); ok { // 该视频流正在录制中
 		_apiResponse(w, statusParamsERR, "视频流存在未完成录制")
 		return
 	}
@@ -452,7 +462,7 @@ func apiRecordStart(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	return
 }
 
-// 停止录制，传入录制时返回的data字段
+// apiRecordStop 停止录制 | 传入录制时返回的data字段
 func apiRecordStop(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 
@@ -641,15 +651,17 @@ func restfulAPI() {
 	router.GET("/users/:id/devices", apiAuthCheck(apiNewDevices, config.Secret))  // 注册新通道设备
 	router.GET("/devices/:id/delete", apiAuthCheck(apiDelDevices, config.Secret)) // 删除通道设备
 
-	// 流:Play
-	router.GET("/devices/:id/play", apiAuthCheck(apiPlay, config.Secret))     // 播放
-	router.GET("/devices/:id/replay", apiAuthCheck(apiReplay, config.Secret)) // 回播
+	// 流
+	router.GET("/devices/:id/play", apiAuthCheck(apiPlay, config.Secret))      // 播放
+	router.GET("/devices/:id/replay", apiAuthCheck(apiReplay, config.Secret))  // 回播
+	router.GET("/play/:id/stop", apiAuthCheck(apiStopPlay, config.Secret))     // 停止播放
+	router.GET("/devices/:id/files", apiAuthCheck(apiFileList, config.Secret)) // 获取历史文件/录像文件列表
 
-	router.GET("/play/:id/stop", apiAuthCheck(apiStopPlay, config.Secret))      // 停止播放
-	router.GET("/devices/:id/files", apiAuthCheck(apiFileList, config.Secret))  // 获取历史文件
 	router.GET("/play/:id/record", apiAuthCheck(apiRecordStart, config.Secret)) // 录制
 	router.GET("/record/:id/stop", apiAuthCheck(apiRecordStop, config.Secret))  // 停止录制
 
+	// zlm: MediaServer
 	router.POST("/index/hook/:method", apiWebHooks)
+
 	logrus.Fatal(http.ListenAndServe(config.API, router))
 }
